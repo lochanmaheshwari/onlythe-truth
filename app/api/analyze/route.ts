@@ -208,10 +208,10 @@ const ANALYSIS_PROMPT = `You are the sharpest investigative media analyst. Reaso
 WRITE WITH MAXIMUM DEPTH. Every section must be long, detailed, and packed with specific numbers, dates, names, currency figures (₹, $, etc.), percentages, and direct quotes pulled from the articles. Never write a generic sentence. Every sentence must carry a hard fact. Write like an expert who read every article and remembers every number.
 
 DETERMINE THE TOPIC CATEGORY AND POLARIZATION:
-1. If the topic is controversial, polarized, or related to politics, elections, government policy, war, geopolitics, crimes, or major societal debates where left-leaning and right-leaning news outlets frame the news differently:
-   - Provide complete objects for both the "left" and "right" keys as defined below.
-   - For "fight", identify the core narrative clash between the political or ideological factions.
-2. If the topic is non-polarized, non-political, or objective (e.g. sports matches/scores, movie reviews, pop culture events, entertainment, celebrity gossip, technology gadgets, basic science, consumer advice) where there is no meaningful left-leaning vs right-leaning framing:
+1. If the topic is related to politics, religion, social disputes, court cases/orders, censorship/takedown requests, public figure controversies (e.g. Dhruv Rathee or other creators), crimes, government actions/policy, or any societal debate:
+   - This is always considered polarized/political. You MUST provide complete objects for both the "left" and "right" keys (even if the specific news article reporting it is dry or factual, there are distinct ideological/political stances on the underlying issue).
+   - For "fight", identify the core narrative clash between the political, ideological, or religious factions.
+2. If the topic is strictly non-polarized, non-political, and objective (restricted to: sports scores, general movie/art reviews, pop culture celebrity gossip, tech/gadget releases, basic science, and consumer tips) where there is absolutely no ideological framing or clash:
    - You MUST set the "left" key to null and the "right" key to null.
    - For "fight", write a clear 5-6 sentence overview of what happened — who, what, when, where — with nuance and context. No partisan framing, no "clash" language. Explain the event as a journalist would to someone catching up.
    - For "reality", write 8-10 sentences going deep: full timeline, background context, key people involved, what led to this, what happened next, and any important nuances reporters have noted. This is explanatory journalism, NOT exposé or "brutal truth" framing. No left/right angles. Pack in specific dates, names, numbers, and quotes from articles.
