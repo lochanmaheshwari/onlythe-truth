@@ -407,7 +407,7 @@ export default function MobileDossier({ result, onBack }: MobileDossierProps) {
                         textTransform: 'uppercase',
                         marginBottom: '8px'
                       }}>
-                        Opposition Narrative
+                        Left-Leaning / Critical Stance
                       </div>
                       <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#1e293b', fontWeight: 500, margin: '0 0 10px 0' }}>
                         {result.left.summary}
@@ -456,7 +456,7 @@ export default function MobileDossier({ result, onBack }: MobileDossierProps) {
                         textTransform: 'uppercase',
                         marginBottom: '8px'
                       }}>
-                        Government Narrative
+                        Right-Leaning / Official Stance
                       </div>
                       <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#451a03', fontWeight: 500, margin: '0 0 10px 0' }}>
                         {result.right.summary}
