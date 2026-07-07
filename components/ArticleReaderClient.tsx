@@ -62,27 +62,38 @@ function shortenText(text: string, maxLen = 160) {
 export default function ArticleReaderClient({ section, id }: ArticleReaderClientProps) {
   const articles = allData[section] ?? [];
   const article = articles.find((a) => a.id === id);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // "What Happened" and the "Verdict" are the payoff of the page — readable
+  // without a tap. The two framing sections stay collapsed to keep the page short.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ about: true, reality: true });
+  const [imageFailed, setImageFailed] = useState(false);
 
   if (!article) {
     return (
       <div className={`${lora.variable} ${playfair.variable}`} style={{
-        background: '#f5efe4', minHeight: '100vh',
+        background: '#f4ede3', minHeight: '100vh', color: '#1c1710',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '24px',
       }}>
         <div style={{
-          background: '#ffffff', borderRadius: 24,
-          padding: '24px', textAlign: 'center', maxWidth: 420,
-          fontFamily: 'var(--font-playfair), serif', boxShadow: '0 12px 40px rgba(17,24,39,0.08)',
+          background: '#fbf6ec', border: '2px solid #111111', borderRadius: 4,
+          padding: '28px 24px', textAlign: 'center', maxWidth: 420,
+          fontFamily: 'var(--font-playfair), Georgia, serif',
+          boxShadow: '5px 5px 0 rgba(17, 17, 17, 0.9)',
         }}>
-          <h2 style={{ fontSize: '1.55rem', marginBottom: '0.75rem' }}>Story not found</h2>
-          <p style={{ opacity: 0.7, marginBottom: '1rem' }}>This article could not be located.</p>
-          <Link href="/?focus=news" style={{
-            color: '#0f172a', textDecoration: 'none', fontWeight: 700,
-            fontSize: '0.9rem',
+          <h2 style={{ fontSize: '1.55rem', margin: '0 0 0.75rem' }}>Story not found</h2>
+          <p style={{
+            opacity: 0.75, margin: '0 0 1.25rem', fontSize: '1rem', lineHeight: 1.6,
+            fontFamily: 'var(--font-lora), Georgia, serif',
           }}>
-            ← Back to reading list
+            This article could not be located.
+          </p>
+          <Link href="/?focus=news" style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            minHeight: 44, padding: '10px 20px', border: '2px solid #111111', borderRadius: 2,
+            background: '#111111', color: '#f4ede3', textDecoration: 'none',
+            fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+          }}>
+            ← Back to the feed
           </Link>
         </div>
       </div>
@@ -100,33 +111,49 @@ export default function ArticleReaderClient({ section, id }: ArticleReaderClient
     setExpanded((current) => ({ ...current, [key]: !current[key] }));
   };
 
+  const showImage = Boolean(article.imageUrl) && !imageFailed;
+
   return (
     <div className={`${lora.variable} ${playfair.variable}`}>
-      <style jsx global>{`
-        :root {
-          color-scheme: light;
-        }
-        * { box-sizing: border-box; }
+      {/* Plain <style> (not styled-jsx): there is no styled-jsx SSR registry in
+          app/layout.tsx, so jsx styles would only appear after hydration and the
+          statically exported page would first paint unstyled in the Capacitor
+          WebView. A plain tag is prerendered into the HTML, and React still
+          removes it when the reader unmounts. */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Route-scoped: removed when the reader unmounts. Keep every selector
+           under .reader-* so we never fight app/globals.css. */
         body {
-          margin: 0;
-          background: #f5efe4;
-          color: #111827;
-          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+          background: #f4ede3;
         }
-        a { color: inherit; text-decoration: none; }
-        button { font: inherit; }
 
         .reader-app {
           min-height: 100vh;
-          background: linear-gradient(180deg, #f9f4eb 0%, #efe6d8 100%);
-          padding: max(16px, env(safe-area-inset-top)) 0 calc(24px + env(safe-area-inset-bottom));
+          min-height: 100dvh;
+          background: #f4ede3;
+          color: #1c1710;
+          font-family: var(--font-lora), Georgia, 'Times New Roman', serif;
+          overflow-x: clip; /* belt-and-braces against sideways scroll; clip (not hidden) keeps position:sticky working */
+          -webkit-tap-highlight-color: transparent;
+          padding-bottom: calc(28px + env(safe-area-inset-bottom));
+        }
+        .reader-app a {
+          color: inherit;
+        }
+        .reader-app button {
+          font: inherit;
+        }
+        .reader-app :is(a, button):focus-visible {
+          outline: 3px solid #111111;
+          outline-offset: 2px;
         }
         .reader-shell {
           max-width: 480px;
           margin: 0 auto;
-          min-height: 100vh;
-          padding-bottom: 24px;
         }
+
+        /* Sticky masthead. Safe-area padding lives ON the bar so its cream
+           background keeps covering the notch/status-bar once you scroll. */
         .reader-topbar {
           position: sticky;
           top: 0;
@@ -134,21 +161,40 @@ export default function ArticleReaderClient({ section, id }: ArticleReaderClient
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 10px 16px 12px;
-          background: rgba(249, 244, 235, 0.9);
-          backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+          gap: 8px;
+          padding-top: calc(8px + env(safe-area-inset-top));
+          padding-bottom: 8px;
+          padding-left: max(14px, env(safe-area-inset-left));
+          padding-right: max(14px, env(safe-area-inset-right));
+          background: rgba(244, 237, 227, 0.96);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border-bottom: 2px solid #111111;
         }
-        .reader-back, .reader-menu {
-          width: 38px;
-          height: 38px;
+        .reader-back {
+          flex: 0 0 44px;
+          width: 44px;
+          height: 44px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          border-radius: 999px;
-          background: rgba(17, 24, 39, 0.05);
-          color: #111827;
-          border: 0;
+          border: 2px solid #111111;
+          border-radius: 4px;
+          background: #fbf6ec;
+          color: #111111;
+          font-size: 1.2rem;
+          line-height: 1;
+          font-weight: 700;
+          text-decoration: none;
+          box-shadow: 2px 2px 0 rgba(17, 17, 17, 0.85);
+        }
+        .reader-back:active {
+          transform: translate(1px, 1px);
+          box-shadow: 1px 1px 0 rgba(17, 17, 17, 0.85);
+        }
+        .reader-topbar-spacer {
+          flex: 0 0 44px;
+          width: 44px;
         }
         .reader-topbar-center {
           display: flex;
@@ -156,263 +202,305 @@ export default function ArticleReaderClient({ section, id }: ArticleReaderClient
           align-items: center;
           text-align: center;
           gap: 2px;
-          margin: 0 8px;
+          margin: 0 4px;
+          min-width: 0;
         }
         .reader-topbar-kicker {
-          font-size: 0.7rem;
-          font-weight: 700;
-          letter-spacing: 0.16em;
+          font-family: var(--font-playfair), Georgia, serif;
+          font-size: 0.78rem;
+          font-weight: 800;
+          letter-spacing: 0.18em;
           text-transform: uppercase;
-          color: #6b7280;
+          color: #111111;
+          white-space: nowrap;
         }
         .reader-topbar-section {
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #111827;
+          font-size: 0.78rem;
+          font-style: italic;
+          color: #6f6455;
         }
 
         .reader-content {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 16px 16px 24px;
+          gap: 18px;
+          padding-top: 18px;
+          padding-bottom: 8px;
+          padding-left: max(16px, env(safe-area-inset-left));
+          padding-right: max(16px, env(safe-area-inset-right));
         }
+
         .reader-hero {
-          padding: 8px 2px 4px;
-        }
-        .reader-pill-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-bottom: 10px;
+          padding: 2px 2px 0;
         }
         .reader-pill {
           display: inline-flex;
           align-items: center;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: #111827;
-          color: #f9f4eb;
-          font-size: 0.72rem;
+          padding: 5px 10px;
+          border: 1.5px solid #111111;
+          border-radius: 2px;
+          background: #111111;
+          color: #f4ede3;
+          font-size: 0.68rem;
           font-weight: 700;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
         }
-        .reader-pill.is-muted {
-          background: rgba(17, 24, 39, 0.07);
-          color: #374151;
-        }
         .reader-headline {
-          font-family: var(--font-playfair), serif;
-          font-size: clamp(1.55rem, 4.8vw, 2rem);
-          line-height: 1.12;
-          letter-spacing: -0.025em;
-          margin: 0 0 10px;
-          max-width: 14ch;
+          font-family: var(--font-playfair), Georgia, serif;
+          font-size: clamp(1.65rem, 7vw, 2.25rem);
+          line-height: 1.15;
+          letter-spacing: -0.01em;
+          margin: 12px 0 10px;
+          color: #111111;
+          text-wrap: balance;
+          overflow-wrap: break-word;
         }
         .reader-summary {
-          font-size: 1rem;
-          line-height: 1.7;
-          color: #374151;
-          margin: 0 0 10px;
-          max-width: 60ch;
+          font-size: 1.1rem;
+          font-style: italic;
+          line-height: 1.6;
+          color: #4a4238;
+          margin: 0 0 14px;
+          max-width: 36em;
+          overflow-wrap: break-word;
         }
         .reader-meta {
           display: flex;
           flex-wrap: wrap;
           align-items: center;
-          gap: 6px;
-          font-size: 0.8rem;
-          color: #6b7280;
+          gap: 8px;
+          padding-top: 10px;
+          border-top: 1px solid rgba(17, 17, 17, 0.25);
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #6f6455;
           text-transform: uppercase;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.08em;
         }
 
         .reader-media {
-          border-radius: 20px;
+          margin: 0;
+          border: 2px solid #111111;
+          border-radius: 2px;
+          background: #fbf6ec;
+          box-shadow: 4px 4px 0 rgba(17, 17, 17, 0.9);
           overflow: hidden;
-          background: #ffffff;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
         }
         .reader-media img {
           width: 100%;
+          max-width: 100%;
           aspect-ratio: 4 / 3;
           object-fit: cover;
           display: block;
         }
+        .reader-media figcaption {
+          padding: 7px 12px;
+          border-top: 1px solid rgba(17, 17, 17, 0.2);
+          font-size: 0.72rem;
+          font-style: italic;
+          line-height: 1.45;
+          color: #6f6455;
+          overflow-wrap: break-word;
+        }
 
         .reader-card {
-          background: rgba(255, 255, 255, 0.86);
-          border: 1px solid rgba(17, 24, 39, 0.06);
-          border-radius: 20px;
-          padding: 14px;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-          backdrop-filter: blur(10px);
-        }
-        .reader-card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 8px;
+          background: #fbf6ec;
+          border: 2px solid #111111;
+          border-radius: 2px;
+          padding: 16px;
+          box-shadow: 4px 4px 0 rgba(17, 17, 17, 0.9);
         }
         .reader-card-eyebrow {
           margin: 0 0 4px;
-          font-size: 0.7rem;
+          font-size: 0.66rem;
           font-weight: 700;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.16em;
           text-transform: uppercase;
-          color: #6b7280;
+          color: #6f6455;
         }
         .reader-card-title {
-          margin: 0;
-          font-size: 1rem;
-          font-weight: 700;
-          color: #111827;
+          margin: 0 0 10px;
+          font-family: var(--font-playfair), Georgia, serif;
+          font-size: 1.25rem;
+          font-weight: 800;
+          line-height: 1.2;
+          color: #111111;
         }
-        .reader-card-action {
+        /* Whole heading row is the accordion trigger — comfortably >44px tall. */
+        .reader-card-toggle {
+          display: flex;
+          width: 100%;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          min-height: 44px;
+          padding: 0;
           border: 0;
-          border-radius: 999px;
-          padding: 6px 10px;
-          background: #f3efe7;
-          color: #111827;
-          font-size: 0.75rem;
-          font-weight: 700;
+          background: none;
+          color: #111111;
+          text-align: left;
+          cursor: pointer;
+          font-family: inherit;
+          font-size: inherit;
+          font-weight: inherit;
         }
-        .reader-card-preview {
+        .reader-card-chip {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          padding: 5px 10px;
+          border: 1.5px solid #111111;
+          border-radius: 999px;
+          background: #f4ede3;
+          color: #111111;
+          font-family: var(--font-lora), Georgia, serif;
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+        .reader-card-preview,
+        .reader-card-body p {
           margin: 0;
-          font-size: 0.95rem;
-          line-height: 1.6;
-          color: #374151;
+          font-size: 1.0625rem; /* 17px — phone-news-app body size */
+          line-height: 1.7;
+          color: #2b251d;
+          overflow-wrap: break-word;
         }
         .reader-card-body {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          margin-top: 10px;
+          gap: 14px;
         }
-        .reader-card-body p {
-          margin: 0;
-          font-size: 0.95rem;
-          line-height: 1.65;
-          color: #374151;
-        }
-        .reader-bullets {
-          margin: 0;
-          padding-left: 1rem;
+
+        .reader-footer {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          color: #374151;
-          font-size: 0.95rem;
-          line-height: 1.55;
+          align-items: center;
+          gap: 16px;
+          padding-top: 6px;
         }
-        .reader-source {
-          padding-top: 4px;
-          border-top: 1px solid rgba(17, 24, 39, 0.06);
-          font-size: 0.9rem;
-          color: #374151;
+        .reader-endmark {
+          font-size: 0.7rem;
+          letter-spacing: 0.5em;
+          text-indent: 0.5em; /* re-centres letter-spaced glyphs */
+          color: #111111;
+        }
+        .reader-footer-back {
+          display: flex;
+          width: 100%;
+          min-height: 50px;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #111111;
+          border-radius: 2px;
+          background: #111111;
+          color: #f4ede3;
+          font-size: 0.85rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          text-decoration: none;
+          box-shadow: 4px 4px 0 rgba(17, 17, 17, 0.35);
+        }
+        .reader-footer-back:active {
+          transform: translate(1px, 1px);
+          box-shadow: 2px 2px 0 rgba(17, 17, 17, 0.35);
         }
 
         @media (min-width: 768px) {
           .reader-shell {
             max-width: 560px;
           }
-          .reader-content { padding: 20px 20px 32px; }
+          .reader-content {
+            padding-top: 24px;
+            padding-left: max(24px, env(safe-area-inset-left));
+            padding-right: max(24px, env(safe-area-inset-right));
+          }
         }
-      `}</style>
+      ` }} />
 
       <div className="reader-app">
         <div className="reader-shell">
           <header className="reader-topbar">
-            <Link href="/?focus=news" className="reader-back" aria-label="Back">
+            <Link href="/?focus=news" className="reader-back" aria-label="Back to the news feed">
               ←
             </Link>
             <div className="reader-topbar-center">
               <span className="reader-topbar-kicker">Only the Truth</span>
               <span className="reader-topbar-section">{sectionLabels[section] || section}</span>
             </div>
-            <button className="reader-menu" type="button" aria-label="More options">
-              ☰
-            </button>
+            <span className="reader-topbar-spacer" aria-hidden="true" />
           </header>
 
           <main className="reader-content">
             <section className="reader-hero">
-              <div className="reader-pill-row">
-                <span className="reader-pill">Mobile brief</span>
-                <span className="reader-pill is-muted">{sectionLabels[section] || section}</span>
-              </div>
+              <span className="reader-pill">{sectionLabels[section] || section}</span>
               <h1 className="reader-headline">{article.headline}</h1>
               <p className="reader-summary">{article.subhead || shortenText(article.about?.[0] || '', 220)}</p>
               <div className="reader-meta">
                 <span>{article.byline}</span>
-                <span>•</span>
-                <span>{article.imageCredit || 'Source notes'}</span>
               </div>
             </section>
 
-            {article.imageUrl && (
-              <div className="reader-media">
-                <img src={article.imageUrl} alt={article.headline} />
-              </div>
+            {showImage && (
+              <figure className="reader-media">
+                <img
+                  src={article.imageUrl}
+                  alt={article.headline}
+                  decoding="async"
+                  onError={() => setImageFailed(true)}
+                />
+                {article.imageCredit && <figcaption>{article.imageCredit}</figcaption>}
+              </figure>
             )}
 
             {sections.map((sectionItem) => {
               const items = (sectionItem.items || []).filter(Boolean);
               if (!items.length) return null;
-              const isOpen = Boolean(expanded[sectionItem.key]);
+              const collapsible = items.join(' ').length > 240;
+              const isOpen = !collapsible || Boolean(expanded[sectionItem.key]);
               return (
                 <article className="reader-card" key={sectionItem.key}>
-                  <div className="reader-card-header">
-                    <div>
-                      <p className="reader-card-eyebrow">{sectionItem.subtitle}</p>
-                      <h2 className="reader-card-title">{sectionItem.title}</h2>
-                    </div>
-                    <button className="reader-card-action" type="button" onClick={() => toggleSection(sectionItem.key)}>
-                      {isOpen ? 'Hide' : 'Read more'}
-                    </button>
-                  </div>
-                  <p className="reader-card-preview">
-                    {isOpen ? shortenText(items.join(' '), 260) : shortenText(items[0] || '', 180)}
-                  </p>
-                  {isOpen && (
+                  <p className="reader-card-eyebrow">{sectionItem.subtitle}</p>
+                  <h2 className="reader-card-title">
+                    {collapsible ? (
+                      <button
+                        className="reader-card-toggle"
+                        type="button"
+                        aria-expanded={isOpen}
+                        onClick={() => toggleSection(sectionItem.key)}
+                      >
+                        <span>{sectionItem.title}</span>
+                        <span className="reader-card-chip">{isOpen ? 'Show less' : 'Read more'}</span>
+                      </button>
+                    ) : (
+                      sectionItem.title
+                    )}
+                  </h2>
+                  {isOpen ? (
                     <div className="reader-card-body">
                       {items.map((item, index) => (
                         <p key={`${sectionItem.key}-${index}`}>{item}</p>
                       ))}
                     </div>
+                  ) : (
+                    <p className="reader-card-preview">{shortenText(items[0] || '', 220)}</p>
                   )}
                 </article>
               );
             })}
 
-            <article className="reader-card">
-              <div className="reader-card-header">
-                <div>
-                  <p className="reader-card-eyebrow">Evidence</p>
-                  <h2 className="reader-card-title">Quick reference points</h2>
-                </div>
+            <footer className="reader-footer">
+              <div className="reader-endmark" aria-hidden="true">
+                ◆ ◆ ◆
               </div>
-              <ul className="reader-bullets">
-                {sections.flatMap((sectionItem) =>
-                  (sectionItem.items || []).slice(0, 2).map((item, index) => (
-                    <li key={`${sectionItem.key}-bullet-${index}`}>{shortenText(item, 140)}</li>
-                  ))
-                )}
-              </ul>
-            </article>
-
-            <article className="reader-card">
-              <div className="reader-card-header">
-                <div>
-                  <p className="reader-card-eyebrow">Sources</p>
-                  <h2 className="reader-card-title">Reference points</h2>
-                </div>
-              </div>
-              <div className="reader-source">{article.byline}</div>
-              <div className="reader-source">{article.imageCredit || 'Source notes available in the archive'}</div>
-            </article>
+              <Link href="/?focus=news" className="reader-footer-back">
+                ← Back to all stories
+              </Link>
+            </footer>
           </main>
         </div>
       </div>

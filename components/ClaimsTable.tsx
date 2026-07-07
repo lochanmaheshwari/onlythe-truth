@@ -25,14 +25,14 @@ export default function ClaimsTable({ tableData }: ClaimsTableProps) {
               const vClass = (row.verdict || '').toLowerCase();
               return (
                 <tr key={i}>
-                  <td style={{ fontWeight: 600, color: '#111' }}>"{row.said}"</td>
-                  <td>
+                  <td data-label="Claim" style={{ fontWeight: 600, color: '#111' }}>"{row.said}"</td>
+                  <td data-label="Verdict">
                     <span className={`verdict-badge ${vClass}`}>
                       {row.verdict}
                     </span>
                   </td>
-                  <td>{row.truth}</td>
-                  <td>
+                  <td data-label="Factual Reality">{row.truth}</td>
+                  <td data-label="Source">
                     {row.link ? (
                       <a href={row.link} target="_blank" rel="noopener noreferrer" className="source-link">
                         {row.source}

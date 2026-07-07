@@ -37,7 +37,12 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "mobile",
+    "mobile-app",
+    "ios",
+    "scratch",
+    "out"
   ],
   "extends": "expo/tsconfig.base"
 }

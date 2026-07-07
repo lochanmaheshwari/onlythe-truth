@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import StyledJsxRegistry from "./registry";
 
 export const metadata: Metadata = {
   title: "Only the Truth | Fact-Check Any Video from Instagram, YouTube & TikTok",
@@ -11,6 +12,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#f4ede3",
 };
 
 export default function RootLayout({
@@ -23,7 +26,9 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body>{children}</body>
+      <body>
+        <StyledJsxRegistry>{children}</StyledJsxRegistry>
+      </body>
     </html>
   );
 }
