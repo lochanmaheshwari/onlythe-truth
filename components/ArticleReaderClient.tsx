@@ -3,6 +3,16 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Lora, Playfair_Display } from 'next/font/google';
+import { 
+  ChevronLeft, 
+  ChevronDown, 
+  ChevronRight, 
+  BookOpen, 
+  Scale, 
+  Info,
+  Sparkles,
+  Link as LinkIcon 
+} from 'lucide-react';
 
 const lora = Lora({
   subsets: ['latin'],
@@ -52,368 +62,436 @@ interface ArticleReaderClientProps {
   id: string;
 }
 
-function shortenText(text: string, maxLen = 160) {
-  const clean = (text || '').replace(/\s+/g, ' ').trim();
-  if (!clean) return '';
-  if (clean.length <= maxLen) return clean;
-  return `${clean.slice(0, maxLen - 1).trimEnd()}…`;
-}
-
 export default function ArticleReaderClient({ section, id }: ArticleReaderClientProps) {
   const articles = allData[section] ?? [];
   const article = articles.find((a) => a.id === id);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    about: true,
+    perspectives: false,
+    reality: false
+  });
+
+  const toggleSection = (sec: string) => {
+    setExpandedSections(prev => ({ ...prev, [sec]: !prev[sec] }));
+  };
 
   if (!article) {
     return (
       <div className={`${lora.variable} ${playfair.variable}`} style={{
-        background: '#f5efe4', minHeight: '100vh',
+        background: '#fcfaf7', minHeight: '100vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '24px',
+        padding: '20px'
       }}>
         <div style={{
-          background: '#ffffff', borderRadius: 24,
-          padding: '24px', textAlign: 'center', maxWidth: 420,
-          fontFamily: 'var(--font-playfair), serif', boxShadow: '0 12px 40px rgba(17,24,39,0.08)',
+          background: '#fff', border: '1px solid #e7e5e4',
+          padding: '2.5rem 1.5rem', textAlign: 'center', maxWidth: 400,
+          borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
         }}>
-          <h2 style={{ fontSize: '1.55rem', marginBottom: '0.75rem' }}>Story not found</h2>
-          <p style={{ opacity: 0.7, marginBottom: '1rem' }}>This article could not be located.</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem', color: '#111' }}>Dispatch Not Found</h2>
+          <p style={{ opacity: .7, marginBottom: '1.5rem', fontSize: '14px' }}>This article could not be located.</p>
           <Link href="/?focus=news" style={{
-            color: '#0f172a', textDecoration: 'none', fontWeight: 700,
-            fontSize: '0.9rem',
+            color: '#8b5cf6', textDecoration: 'underline',
+            fontWeight: 700, textTransform: 'uppercase', fontSize: '.8rem',
+            letterSpacing: '0.04em'
           }}>
-            ← Back to reading list
+            ← Back to Broadsheet
           </Link>
         </div>
       </div>
     );
   }
 
-  const sections = [
-    { key: 'about', title: 'What Happened', subtitle: 'The core story in plain language', items: article.about ?? [] },
-    { key: 'left', title: 'Left View', subtitle: 'How opposition-leaning outlets frame it', items: article.left ?? [] },
-    { key: 'right', title: 'Right View', subtitle: 'How government-friendly outlets frame it', items: article.right ?? [] },
-    { key: 'reality', title: 'Verdict', subtitle: 'The clearest reading of the evidence', items: article.reality ?? [] },
-  ];
-
-  const toggleSection = (key: string) => {
-    setExpanded((current) => ({ ...current, [key]: !current[key] }));
+  // Generate a short 2-3 sentence overview
+  const getOverview = () => {
+    if (article.about && article.about.length > 0) {
+      return article.about[0];
+    }
+    return article.subhead;
   };
 
+  const hasPerspectives = (article.left && article.left.length > 0) || (article.right && article.right.length > 0);
+
   return (
-    <div className={`${lora.variable} ${playfair.variable}`}>
-      <style jsx global>{`
-        :root {
-          color-scheme: light;
-        }
-        * { box-sizing: border-box; }
-        body {
-          margin: 0;
-          background: #f5efe4;
-          color: #111827;
-          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-        }
-        a { color: inherit; text-decoration: none; }
-        button { font: inherit; }
+    <div className={`${lora.variable} ${playfair.variable}`} style={{
+      width: '100%',
+      minHeight: '100vh',
+      background: '#fcfaf7',
+      color: '#1a1a1a',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      paddingBottom: '4rem',
+      boxSizing: 'border-box'
+    }}>
+      {/* ═══ IOS STYLE NAVIGATION HEADER ═══ */}
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 99,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: 'calc(56px + env(safe-area-inset-top, 0px))',
+        padding: 'env(safe-area-inset-top, 0px) 16px 0 16px',
+        background: 'rgba(252, 250, 247, 0.94)',
+        borderBottom: '1px solid #e5e0d8',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}>
+        <Link href="/?focus=news" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          background: 'none',
+          border: 'none',
+          color: '#8b5cf6',
+          fontSize: '16px',
+          fontWeight: 500,
+          textDecoration: 'none',
+          padding: '4px 0'
+        }}>
+          <ChevronLeft size={20} strokeWidth={2.5} />
+          Feed
+        </Link>
 
-        .reader-app {
-          min-height: 100vh;
-          background: linear-gradient(180deg, #f9f4eb 0%, #efe6d8 100%);
-          padding: max(16px, env(safe-area-inset-top)) 0 calc(24px + env(safe-area-inset-bottom));
-        }
-        .reader-shell {
-          max-width: 480px;
-          margin: 0 auto;
-          min-height: 100vh;
-          padding-bottom: 24px;
-        }
-        .reader-topbar {
-          position: sticky;
-          top: 0;
-          z-index: 20;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 16px 12px;
-          background: rgba(249, 244, 235, 0.9);
-          backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(17, 24, 39, 0.06);
-        }
-        .reader-back, .reader-menu {
-          width: 38px;
-          height: 38px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 999px;
-          background: rgba(17, 24, 39, 0.05);
-          color: #111827;
-          border: 0;
-        }
-        .reader-topbar-center {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          gap: 2px;
-          margin: 0 8px;
-        }
-        .reader-topbar-kicker {
-          font-size: 0.7rem;
-          font-weight: 700;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          color: #6b7280;
-        }
-        .reader-topbar-section {
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #111827;
-        }
+        <span style={{
+          fontSize: '16px',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          fontFamily: 'Georgia, serif',
+          textTransform: 'lowercase'
+        }}>
+          only the truth
+        </span>
 
-        .reader-content {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          padding: 16px 16px 24px;
-        }
-        .reader-hero {
-          padding: 8px 2px 4px;
-        }
-        .reader-pill-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-bottom: 10px;
-        }
-        .reader-pill {
-          display: inline-flex;
-          align-items: center;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: #111827;
-          color: #f9f4eb;
-          font-size: 0.72rem;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-        }
-        .reader-pill.is-muted {
-          background: rgba(17, 24, 39, 0.07);
-          color: #374151;
-        }
-        .reader-headline {
-          font-family: var(--font-playfair), serif;
-          font-size: clamp(1.55rem, 4.8vw, 2rem);
-          line-height: 1.12;
-          letter-spacing: -0.025em;
-          margin: 0 0 10px;
-          max-width: 14ch;
-        }
-        .reader-summary {
-          font-size: 1rem;
-          line-height: 1.7;
-          color: #374151;
-          margin: 0 0 10px;
-          max-width: 60ch;
-        }
-        .reader-meta {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.8rem;
-          color: #6b7280;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-        }
+        <div style={{ width: '48px' }} />
+      </header>
 
-        .reader-media {
-          border-radius: 20px;
-          overflow: hidden;
-          background: #ffffff;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-        }
-        .reader-media img {
-          width: 100%;
-          aspect-ratio: 4 / 3;
-          object-fit: cover;
-          display: block;
-        }
+      {/* ═══ DOSSIER MAIN CONTENT CONTAINER ═══ */}
+      <div style={{
+        padding: '20px 16px 0 16px',
+        maxWidth: '680px',
+        margin: '0 auto',
+        boxSizing: 'border-box'
+      }}>
+        {/* Category Label */}
+        <div style={{ marginBottom: '12px' }}>
+          <span style={{
+            background: '#8b5cf6',
+            color: '#fff',
+            fontSize: '10px',
+            fontWeight: 800,
+            padding: '3px 8px',
+            borderRadius: '100px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            {sectionLabels[section] || section}
+          </span>
+        </div>
 
-        .reader-card {
-          background: rgba(255, 255, 255, 0.86);
-          border: 1px solid rgba(17, 24, 39, 0.06);
-          border-radius: 20px;
-          padding: 14px;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-          backdrop-filter: blur(10px);
-        }
-        .reader-card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 8px;
-        }
-        .reader-card-eyebrow {
-          margin: 0 0 4px;
-          font-size: 0.7rem;
-          font-weight: 700;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: #6b7280;
-        }
-        .reader-card-title {
-          margin: 0;
-          font-size: 1rem;
-          font-weight: 700;
-          color: #111827;
-        }
-        .reader-card-action {
-          border: 0;
-          border-radius: 999px;
-          padding: 6px 10px;
-          background: #f3efe7;
-          color: #111827;
-          font-size: 0.75rem;
-          font-weight: 700;
-        }
-        .reader-card-preview {
-          margin: 0;
-          font-size: 0.95rem;
-          line-height: 1.6;
-          color: #374151;
-        }
-        .reader-card-body {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-top: 10px;
-        }
-        .reader-card-body p {
-          margin: 0;
-          font-size: 0.95rem;
-          line-height: 1.65;
-          color: #374151;
-        }
-        .reader-bullets {
-          margin: 0;
-          padding-left: 1rem;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          color: #374151;
-          font-size: 0.95rem;
-          line-height: 1.55;
-        }
-        .reader-source {
-          padding-top: 4px;
-          border-top: 1px solid rgba(17, 24, 39, 0.06);
-          font-size: 0.9rem;
-          color: #374151;
-        }
+        {/* Hero Title */}
+        <h1 style={{
+          fontSize: '24px',
+          lineHeight: '1.25',
+          fontWeight: 800,
+          fontFamily: 'Georgia, serif',
+          color: '#111',
+          margin: '0 0 8px 0',
+          letterSpacing: '-0.02em'
+        }}>
+          {article.headline}
+        </h1>
 
-        @media (min-width: 768px) {
-          .reader-shell {
-            max-width: 560px;
-          }
-          .reader-content { padding: 20px 20px 32px; }
-        }
-      `}</style>
+        {/* Subhead / Byline */}
+        <p style={{
+          fontSize: '15px',
+          lineHeight: '1.45',
+          color: '#57534e',
+          fontFamily: 'Georgia, serif',
+          fontStyle: 'italic',
+          margin: '0 0 12px 0'
+        }}>
+          {article.subhead}
+        </p>
 
-      <div className="reader-app">
-        <div className="reader-shell">
-          <header className="reader-topbar">
-            <Link href="/?focus=news" className="reader-back" aria-label="Back">
-              ←
-            </Link>
-            <div className="reader-topbar-center">
-              <span className="reader-topbar-kicker">Only the Truth</span>
-              <span className="reader-topbar-section">{sectionLabels[section] || section}</span>
+        <div style={{
+          fontSize: '11px',
+          textTransform: 'uppercase',
+          fontWeight: 700,
+          color: '#78716c',
+          letterSpacing: '0.04em',
+          marginBottom: '20px'
+        }}>
+          By {article.byline || 'Broadsheet Desk'}
+        </div>
+
+        {/* Media Block */}
+        {article.imageUrl && (
+          <div style={{
+            background: '#000',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            marginBottom: '24px',
+            border: '1px solid #e7e5e4',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+          }}>
+            <img 
+              src={article.imageUrl} 
+              alt={article.headline} 
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+                maxHeight: '380px',
+                objectFit: 'cover',
+                filter: 'grayscale(0.15) contrast(1.05)'
+              }}
+            />
+            <div style={{
+              padding: '8px 14px',
+              fontSize: '10px',
+              color: '#a8a29e',
+              background: '#fafaf9',
+              borderTop: '1px solid #e7e5e4',
+              textTransform: 'uppercase',
+              letterSpacing: '0.03em',
+              fontWeight: 500
+            }}>
+              Photo: {article.imageCredit || 'Broadsheet Archive'}
             </div>
-            <button className="reader-menu" type="button" aria-label="More options">
-              ☰
-            </button>
-          </header>
+          </div>
+        )}
 
-          <main className="reader-content">
-            <section className="reader-hero">
-              <div className="reader-pill-row">
-                <span className="reader-pill">Mobile brief</span>
-                <span className="reader-pill is-muted">{sectionLabels[section] || section}</span>
-              </div>
-              <h1 className="reader-headline">{article.headline}</h1>
-              <p className="reader-summary">{article.subhead || shortenText(article.about?.[0] || '', 220)}</p>
-              <div className="reader-meta">
-                <span>{article.byline}</span>
-                <span>•</span>
-                <span>{article.imageCredit || 'Source notes'}</span>
-              </div>
-            </section>
+        {/* Summary Card */}
+        <div style={{
+          background: '#f4ede4',
+          border: '1px solid #e4dcd0',
+          borderRadius: '16px',
+          padding: '16px',
+          marginBottom: '24px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            color: '#78716c',
+            marginBottom: '8px',
+            letterSpacing: '0.04em'
+          }}>
+            <Sparkles size={13} style={{ color: '#8b5cf6' }} />
+            Quick Overview
+          </div>
+          <p style={{
+            fontSize: '15px',
+            lineHeight: '1.6',
+            color: '#292524',
+            fontWeight: 500,
+            margin: 0,
+            fontStyle: 'italic'
+          }}>
+            "{getOverview()}"
+          </p>
+        </div>
 
-            {article.imageUrl && (
-              <div className="reader-media">
-                <img src={article.imageUrl} alt={article.headline} />
-              </div>
-            )}
-
-            {sections.map((sectionItem) => {
-              const items = (sectionItem.items || []).filter(Boolean);
-              if (!items.length) return null;
-              const isOpen = Boolean(expanded[sectionItem.key]);
-              return (
-                <article className="reader-card" key={sectionItem.key}>
-                  <div className="reader-card-header">
-                    <div>
-                      <p className="reader-card-eyebrow">{sectionItem.subtitle}</p>
-                      <h2 className="reader-card-title">{sectionItem.title}</h2>
-                    </div>
-                    <button className="reader-card-action" type="button" onClick={() => toggleSection(sectionItem.key)}>
-                      {isOpen ? 'Hide' : 'Read more'}
-                    </button>
+        {/* Accordions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          
+          {/* 1. WHAT IT'S ABOUT */}
+          {article.about && article.about.length > 0 && (
+            <div style={{
+              background: '#fff',
+              border: '1px solid #e7e5e4',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.01)'
+            }}>
+              <button 
+                onClick={() => toggleSection('about')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  background: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center' }}>
+                    <BookOpen size={18} />
                   </div>
-                  <p className="reader-card-preview">
-                    {isOpen ? shortenText(items.join(' '), 260) : shortenText(items[0] || '', 180)}
-                  </p>
-                  {isOpen && (
-                    <div className="reader-card-body">
-                      {items.map((item, index) => (
-                        <p key={`${sectionItem.key}-${index}`}>{item}</p>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1c1917' }}>Narrative Focus</span>
+                </div>
+                {expandedSections.about ? <ChevronDown size={18} color="#78716c" /> : <ChevronRight size={18} color="#78716c" />}
+              </button>
+              {expandedSections.about && (
+                <div style={{
+                  padding: '0 16px 16px 16px',
+                  borderTop: '1px solid #f5f5f4',
+                  fontSize: '15px',
+                  color: '#374151'
+                }}>
+                  {article.about.map((p, idx) => (
+                    <p key={idx} style={{ lineHeight: '1.7', marginBottom: '1rem', fontSize: '15px' }}>{p}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 2. PERSPECTIVES */}
+          {hasPerspectives && (
+            <div style={{
+              background: '#fff',
+              border: '1px solid #e7e5e4',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.01)'
+            }}>
+              <button 
+                onClick={() => toggleSection('perspectives')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  background: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center' }}>
+                    <Scale size={18} />
+                  </div>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1c1917' }}>Narrative Angles</span>
+                </div>
+                {expandedSections.perspectives ? <ChevronDown size={18} color="#78716c" /> : <ChevronRight size={18} color="#78716c" />}
+              </button>
+              {expandedSections.perspectives && (
+                <div style={{
+                  padding: '16px',
+                  borderTop: '1px solid #f5f5f4',
+                  background: '#fafaf9',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px'
+                }}>
+                  {/* Left (Opposition) */}
+                  {article.left && article.left.length > 0 && (
+                    <div style={{
+                      background: '#fff',
+                      border: '1px solid #dbeafe',
+                      borderRadius: '12px',
+                      padding: '14px'
+                    }}>
+                      <div style={{
+                        background: '#dbeafe',
+                        color: '#1e40af',
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        textTransform: 'uppercase',
+                        marginBottom: '8px'
+                      }}>
+                        Left-Leaning / Critical Stance
+                      </div>
+                      {article.left.map((p, idx) => (
+                        <p key={idx} style={{ fontSize: '14px', lineHeight: '1.6', color: '#1e293b', margin: '0 0 10px 0' }}>{p}</p>
                       ))}
                     </div>
                   )}
-                </article>
-              );
-            })}
 
-            <article className="reader-card">
-              <div className="reader-card-header">
-                <div>
-                  <p className="reader-card-eyebrow">Evidence</p>
-                  <h2 className="reader-card-title">Quick reference points</h2>
+                  {/* Right (Government) */}
+                  {article.right && article.right.length > 0 && (
+                    <div style={{
+                      background: '#fff',
+                      border: '1px solid #fee2e2',
+                      borderRadius: '12px',
+                      padding: '14px'
+                    }}>
+                      <div style={{
+                        background: '#fee2e2',
+                        color: '#991b1b',
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        textTransform: 'uppercase',
+                        marginBottom: '8px'
+                      }}>
+                        Right-Leaning / Official Stance
+                      </div>
+                      {article.right.map((p, idx) => (
+                        <p key={idx} style={{ fontSize: '14px', lineHeight: '1.6', color: '#78350f', margin: '0 0 10px 0' }}>{p}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <ul className="reader-bullets">
-                {sections.flatMap((sectionItem) =>
-                  (sectionItem.items || []).slice(0, 2).map((item, index) => (
-                    <li key={`${sectionItem.key}-bullet-${index}`}>{shortenText(item, 140)}</li>
-                  ))
-                )}
-              </ul>
-            </article>
+              )}
+            </div>
+          )}
 
-            <article className="reader-card">
-              <div className="reader-card-header">
-                <div>
-                  <p className="reader-card-eyebrow">Sources</p>
-                  <h2 className="reader-card-title">Reference points</h2>
+          {/* 3. BRUTAL REALITY / EXPLORATORY DEEP DIVE */}
+          {article.reality && article.reality.length > 0 && (
+            <div style={{
+              background: '#fff',
+              border: '1px solid #e7e5e4',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.01)'
+            }}>
+              <button 
+                onClick={() => toggleSection('reality')}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  background: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center' }}>
+                    <Info size={18} />
+                  </div>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1c1917' }}>The Brutal Reality</span>
                 </div>
-              </div>
-              <div className="reader-source">{article.byline}</div>
-              <div className="reader-source">{article.imageCredit || 'Source notes available in the archive'}</div>
-            </article>
-          </main>
+                {expandedSections.reality ? <ChevronDown size={18} color="#78716c" /> : <ChevronRight size={18} color="#78716c" />}
+              </button>
+              {expandedSections.reality && (
+                <div style={{
+                  padding: '16px',
+                  borderTop: '1px solid #f5f5f4',
+                  background: '#1c1917',
+                  color: '#e7e5e4',
+                  fontSize: '15px'
+                }}>
+                  {article.reality.map((p, idx) => (
+                    <p key={idx} style={{ lineHeight: '1.7', marginBottom: '1rem', color: '#e7e5e4' }}>{p}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </div>

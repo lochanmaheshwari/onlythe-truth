@@ -7,6 +7,8 @@ import { Instagram, Facebook, Youtube, X, Search, FileText, TrendingUp } from '@
 import NewspaperFeed from '@/components/NewspaperFeed';
 import InstagramEmbed from '@/components/InstagramEmbed';
 import ClaimsTable from '@/components/ClaimsTable';
+import MobileDossier from '@/components/MobileDossier';
+import { Compass, BookOpen, Flame, User } from 'lucide-react';
 
 /* ─── TYPES ─── */
 interface AnalysisResult {
@@ -130,7 +132,7 @@ export default function HomePage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [inputEmail, setInputEmail] = useState('');
 
-  const [activeMobileTab, setActiveMobileTab] = useState<'verify' | 'news' | 'trending' | 'profile'>('verify');
+  const [activeMobileTab, setActiveMobileTab] = useState<'verify' | 'news' | 'trending' | 'profile'>('trending');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobileApp, setIsMobileApp] = useState(false);
 
@@ -336,7 +338,7 @@ export default function HomePage() {
       setMainView('home');
       setTimeout(scrollToTrending, 100);
     } else if (tab === 'profile') {
-      setShowLoginModal(true);
+      // Handled inline inside main container
     }
   };
 
@@ -529,8 +531,7 @@ export default function HomePage() {
 
     // Scroll to verification report area is handled post-scan
     try {
-      setLoadingStep(2);
-      const apiHost = typeof window !== 'undefined' && !!(window as any).Capacitor ? 'http://192.168.0.176:3000' : '';
+      const apiHost = typeof window !== 'undefined' && !!(window as any).Capacitor ? 'http://192.168.0.131:3000' : '';
       const res = await fetch(`${apiHost}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -545,7 +546,9 @@ export default function HomePage() {
       // Modal will open automatically since result is set
 
     } catch (err: any) {
-      setLoadingError(err.message || 'Something went wrong.');
+      const apiHost = typeof window !== 'undefined' && !!(window as any).Capacitor ? 'http://192.168.0.131:3000' : '';
+      console.error("Scan fetch error:", err);
+      setLoadingError(`Could not connect to backend at ${apiHost || 'localhost'}. Make sure your phone and laptop are on the same Wi-Fi network.`);
     } finally {
       setIsSubmitting(false);
       setLoadingStep(0);
@@ -2245,6 +2248,27 @@ export default function HomePage() {
           .main-content.mobile-tab-trending #news-feed-card {
             display: none !important;
           }
+          .main-content.mobile-tab-profile .hero-card,
+          .main-content.mobile-tab-profile #news-feed-card,
+          .main-content.mobile-tab-profile #trending-scans-card {
+            display: none !important;
+          }
+          
+          /* Stack trending scans vertically on mobile and make capsules compact */
+          .trending-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1.25rem !important;
+          }
+          .news-capsule {
+            padding: 1.2rem 1.4rem !important;
+            margin-bottom: 0.5rem !important;
+            min-height: auto !important;
+          }
+          .news-capsule-title {
+            font-size: 1.25rem !important;
+            line-height: 1.3 !important;
+            margin-bottom: 0.75rem !important;
+          }
           
           /* Native App Header */
           .mobile-header {
@@ -2478,7 +2502,7 @@ export default function HomePage() {
 
         {/* ═══ MAIN RIGHT CONTAINER ═══ */}
         <main className={`main-content mobile-tab-${activeMobileTab} ${isMobileApp ? 'is-mobile-app-content' : ''}`}>
-          {result ? (
+          {result && !isMobileApp ? (
             /* Inline Full-Screen Result (Instagram analysis details dossier) */
             <section className="hero-card" style={{ 
               display: 'flex', 
@@ -3407,13 +3431,165 @@ export default function HomePage() {
             </section>
           )}
 
-
+          {isMobileApp && activeMobileTab === 'profile' && (
+            <section className="mobile-profile-section" style={{
+              padding: '1.5rem 0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem',
+              color: '#000',
+              fontFamily: 'var(--sans)'
+            }}>
+              {userEmail ? (
+                /* Logged In View */
+                <div style={{
+                  background: '#fff',
+                  border: '1px solid #e5e0d8',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.25rem',
+                  alignItems: 'center',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: '#000',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase'
+                  }}>
+                    {userEmail.substring(0, 2)}
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{userEmail}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#78716c', marginTop: '0.25rem' }}>Active Member</div>
+                  </div>
+                  <button 
+                    onClick={handleLogout}
+                    style={{
+                      marginTop: '0.5rem',
+                      width: '100%',
+                      background: '#fee2e2',
+                      color: '#ef4444',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontSize: '0.88rem'
+                    }}
+                  >
+                    Log Out
+                  </button>
+                </div>
+              ) : (
+                /* Logged Out View - Inline Login Form */
+                <div style={{
+                  background: '#fff',
+                  border: '1px solid #e5e0d8',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.25rem',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--serif)' }}>Sign in to Only The Truth</h3>
+                    <p style={{ fontSize: '0.82rem', color: '#78716c', marginTop: '0.25rem' }}>Save scans, check histories, and track viral claims.</p>
+                  </div>
+                  <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#444' }}>Email Address</label>
+                      <input 
+                        type="email" 
+                        value={inputEmail}
+                        onChange={(e) => setInputEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        style={{
+                          border: '1px solid #d6d3d1',
+                          borderRadius: '8px',
+                          padding: '0.75rem',
+                          fontSize: '0.88rem',
+                          background: '#fcfaf7'
+                        }}
+                        required
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#444' }}>Password</label>
+                      <input 
+                        type="password" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        style={{
+                          border: '1px solid #d6d3d1',
+                          borderRadius: '8px',
+                          padding: '0.75rem',
+                          fontSize: '0.88rem',
+                          background: '#fcfaf7'
+                        }}
+                        required
+                      />
+                    </div>
+                    {authError && (
+                      <div style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600 }}>
+                        ✕ {authError}
+                      </div>
+                    )}
+                    <button 
+                      type="submit"
+                      disabled={authLoading}
+                      style={{
+                        background: '#000',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.8rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        fontSize: '0.88rem',
+                        marginTop: '0.5rem'
+                      }}
+                    >
+                      {authLoading ? 'Signing In...' : 'Sign In / Sign Up'}
+                    </button>
+                  </form>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* page-footer */}
           <div className="page-footer">
             Only The Truth · Independent media bias analysis · Not affiliated with any political organization
           </div>
         </main>
+
+        {isMobileApp && result && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99999,
+            background: '#fcfaf7',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch'
+          }}>
+            <MobileDossier result={result} onBack={() => setResult(null)} />
+          </div>
+        )}
       </div>
 
       {/* ═══ MODAL 01: LOGIN DIALOG ═══ */}
@@ -3522,83 +3698,112 @@ export default function HomePage() {
       )}
 
       {/* ═══ MOBILE TOP HEADER ═══ */}
-      {isMobileApp && (
-        <header className="mobile-header">
-          <div className="mobile-header-logo" onClick={() => { setMobileMenuOpen(false); handleMobileNav('verify'); }}>
+      {isMobileApp && !result && (
+        <header className="mobile-header" style={{ justifyContent: 'center' }}>
+          <div className="mobile-header-logo" onClick={() => handleMobileNav('verify')} style={{ margin: 0 }}>
             only the truth
-          </div>
-          <div className="mobile-header-right">
-            <button className="mobile-about-btn" onClick={() => setShowAboutModal(true)}>
-              About
-            </button>
-            <button className="mobile-menu-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? (
-                <X size={20} color="#fff" />
-              ) : (
-                <div className="hamburger-icon">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              )}
-            </button>
           </div>
         </header>
       )}
 
-      {/* ═══ MOBILE DROPDOWN MENU ═══ */}
-      {mobileMenuOpen && (
-        <div className="mobile-dropdown-menu">
+      {/* ═══ NATIVE MOBILE BOTTOM TAB BAR ═══ */}
+      {isMobileApp && !result && (
+        <nav className="mobile-tab-bar" style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10000,
+          background: 'rgba(252, 250, 247, 0.94)',
+          borderTop: '1px solid #e5e0d8',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          height: 'calc(56px + env(safe-area-inset-bottom, 0px))'
+        }}>
           <button 
-            className="menu-block blue" 
-            onClick={() => {
-              setMobileMenuOpen(false);
-              if (userEmail) {
-                if (confirm("Do you want to log out?")) {
-                  handleLogout();
-                }
-              } else {
-                setShowLoginModal(true);
-              }
+            onClick={() => handleMobileNav('verify')}
+            style={{
+              background: 'none',
+              border: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              color: activeMobileTab === 'verify' ? '#000' : '#8c857b',
+              cursor: 'pointer',
+              flex: 1,
+              height: '56px'
             }}
           >
-            <div className="menu-block-label">{userEmail ? 'Log Out' : t.loginBtn}</div>
-            <div className="menu-block-num">01 <span className="arrow">↗</span></div>
+            <Compass size={22} strokeWidth={activeMobileTab === 'verify' ? 2.5 : 1.8} />
+            <span style={{ fontSize: '10px', fontWeight: activeMobileTab === 'verify' ? 700 : 500 }}>Fact Check</span>
           </button>
           
           <button 
-            className="menu-block yellow" 
-            onClick={() => {
-              setMobileMenuOpen(false);
-              handleMobileNav('verify');
+            onClick={() => handleMobileNav('news')}
+            style={{
+              background: 'none',
+              border: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              color: activeMobileTab === 'news' ? '#000' : '#8c857b',
+              cursor: 'pointer',
+              flex: 1,
+              height: '56px'
             }}
           >
-            <div className="menu-block-label">{t.factCheckBtn}</div>
-            <div className="menu-block-num">02 <span className="arrow">↗</span></div>
+            <BookOpen size={22} strokeWidth={activeMobileTab === 'news' ? 2.5 : 1.8} />
+            <span style={{ fontSize: '10px', fontWeight: activeMobileTab === 'news' ? 700 : 500 }}>Newsfeed</span>
           </button>
           
           <button 
-            className="menu-block orange" 
-            onClick={() => {
-              setMobileMenuOpen(false);
-              handleMobileNav('trending');
+            onClick={() => handleMobileNav('trending')}
+            style={{
+              background: 'none',
+              border: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              color: activeMobileTab === 'trending' ? '#000' : '#8c857b',
+              cursor: 'pointer',
+              flex: 1,
+              height: '56px'
             }}
           >
-            <div className="menu-block-label">{t.trendingBtn}</div>
-            <div className="menu-block-num">03 <span className="arrow">↗</span></div>
+            <Flame size={22} strokeWidth={activeMobileTab === 'trending' ? 2.5 : 1.8} />
+            <span style={{ fontSize: '10px', fontWeight: activeMobileTab === 'trending' ? 700 : 500 }}>Trending</span>
           </button>
           
           <button 
-            className="menu-block green" 
-            onClick={() => {
-              setMobileMenuOpen(false);
-              handleMobileNav('news');
+            onClick={() => handleMobileNav('profile')}
+            style={{
+              background: 'none',
+              border: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              color: activeMobileTab === 'profile' ? '#000' : '#8c857b',
+              cursor: 'pointer',
+              flex: 1,
+              height: '56px'
             }}
           >
-            <div className="menu-block-label">{t.newsfeedBtn}</div>
-            <div className="menu-block-num">04 <span className="arrow">↗</span></div>
+            <User size={22} strokeWidth={activeMobileTab === 'profile' ? 2.5 : 1.8} />
+            <span style={{ fontSize: '10px', fontWeight: activeMobileTab === 'profile' ? 700 : 500 }}>Profile</span>
           </button>
-        </div>
+        </nav>
       )}
 
       {/* ═══ SCRIPTS ═══ */}
