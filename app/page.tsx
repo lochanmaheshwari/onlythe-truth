@@ -1,12 +1,14 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
 import { supabase } from '@/lib/supabaseClient';
-import { Instagram, Facebook, Youtube, X, Search, FileText, TrendingUp } from '@/components/Icons';
+import { apiBase } from '@/lib/config';
+import { Instagram, Facebook, Youtube, X, Search, FileText, TrendingUp, User } from '@/components/Icons';
 import NewspaperFeed from '@/components/NewspaperFeed';
 import InstagramEmbed from '@/components/InstagramEmbed';
 import ClaimsTable from '@/components/ClaimsTable';
+import ExpandableText from '@/components/ExpandableText';
 
 /* ─── TYPES ─── */
 interface AnalysisResult {
@@ -116,6 +118,9 @@ export default function HomePage() {
   const [instagramUrl, setInstagramUrl] = useState('');
   const [scannedUrl, setScannedUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Bumped whenever the user navigates away from a scan; an in-flight
+  // analysis response with a stale sequence must not resurrect the dossier.
+  const scanSeq = useRef(0);
   const [loadingStep, setLoadingStep] = useState(0);
   const [loadingError, setLoadingError] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -324,19 +329,27 @@ export default function HomePage() {
 
 
   const handleMobileNav = (tab: 'verify' | 'news' | 'trending' | 'profile') => {
-    setActiveMobileTab(tab);
-    if (window.innerWidth <= 768) {
-      window.scrollTo(0, 0);
+    if (tab === 'profile') {
+      if (userEmail) {
+        if (confirm('Do you want to log out?')) handleLogout();
+      } else {
+        setShowLoginModal(true);
+      }
+      return;
     }
-    if (tab === 'verify') {
+    setActiveMobileTab(tab);
+    setMainView('home');
+    scanSeq.current++; // invalidate any in-flight scan
+    setResult(null); // tabs are top-level navigation: leave any open scan report
+    if (window.innerWidth <= 768) {
+      // On mobile each tab shows a single card, so jump to the top of it.
+      window.scrollTo(0, 0);
+    } else if (tab === 'verify') {
       scrollToVerify();
     } else if (tab === 'news') {
       scrollToNews();
     } else if (tab === 'trending') {
-      setMainView('home');
       setTimeout(scrollToTrending, 100);
-    } else if (tab === 'profile') {
-      setShowLoginModal(true);
     }
   };
 
@@ -431,8 +444,11 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     const focusParam = params.get('focus');
     if (focusParam === 'verify') {
+      setActiveMobileTab('verify');
       setTimeout(scrollToVerify, 400);
     } else if (focusParam === 'news') {
+      // On mobile the news card only renders on its tab, so switch first.
+      setActiveMobileTab('news');
       setTimeout(scrollToNews, 400);
     }
   }, []);
@@ -521,6 +537,7 @@ export default function HomePage() {
   const runAnalysis = async (rawUrl: string) => {
     const url = normalizeUrl(rawUrl);
     if (!url) return;
+    const seq = ++scanSeq.current;
     setIsSubmitting(true);
     setLoadingError('');
     setResult(null);
@@ -530,8 +547,7 @@ export default function HomePage() {
     // Scroll to verification report area is handled post-scan
     try {
       setLoadingStep(2);
-      const apiHost = typeof window !== 'undefined' && !!(window as any).Capacitor ? 'http://192.168.0.176:3000' : '';
-      const res = await fetch(`${apiHost}/api/analyze`, {
+      const res = await fetch(`${apiBase()}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
@@ -540,12 +556,20 @@ export default function HomePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
 
+      // The user navigated away while this scan was in flight — drop it.
+      if (seq !== scanSeq.current) return;
+
       setResult(data);
 
-      // Modal will open automatically since result is set
+      // The dossier replaces the page content; present it from the top.
+      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
 
     } catch (err: any) {
-      setLoadingError(err.message || 'Something went wrong.');
+      if (seq === scanSeq.current) {
+        setLoadingError(err.message || 'Something went wrong.');
+      }
     } finally {
       setIsSubmitting(false);
       setLoadingStep(0);
@@ -928,6 +952,72 @@ export default function HomePage() {
           border-color: #000;
         }
 
+        .trending-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+          .trending-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .trending-header-card {
+            padding: 1.4rem 1.1rem;
+            border-radius: 22px;
+          }
+          .trending-header-top {
+            margin-bottom: 1.25rem;
+          }
+          .trending-title {
+            font-size: 1.75rem;
+          }
+          .search-box-wrap {
+            min-width: 100%;
+            max-width: 100%;
+          }
+          .search-box-input {
+            font-size: 1rem;
+            padding: 0.85rem 1rem;
+          }
+          /* Sort tabs + category chips become swipeable rows, app style */
+          .sort-tabs-container {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 0.6rem;
+          }
+          .sort-tabs-container::-webkit-scrollbar {
+            display: none;
+          }
+          .sort-tab-btn {
+            white-space: nowrap;
+            padding: 0.6rem 1rem;
+            font-size: 0.78rem;
+          }
+          .category-filters-container {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            margin-top: 0.85rem;
+          }
+          .category-filters-container::-webkit-scrollbar {
+            display: none;
+          }
+          .cat-chip-btn {
+            white-space: nowrap;
+            padding: 0.6rem 1rem;
+            font-size: 0.76rem;
+            min-height: 40px;
+          }
+        }
+
         .side-cta-btn {
           background-color: var(--c-purple);
           color: #fff;
@@ -1063,8 +1153,9 @@ export default function HomePage() {
 
         @media (max-width: 768px) {
           .hero-card {
-            padding: 2.5rem 1.5rem;
-            min-height: calc(100vh - 2rem);
+            padding: 2.75rem 1.25rem 1.75rem;
+            min-height: 0;
+            border-radius: 24px;
           }
         }
 
@@ -1089,6 +1180,20 @@ export default function HomePage() {
           text-shadow: 0 1px 10px rgba(0,0,0,0.7), 0 3px 20px rgba(0,0,0,0.4);
         }
 
+        /* Placed after the base rules so the mobile sizes win the cascade */
+        @media (max-width: 768px) {
+          .hero-title {
+            font-size: clamp(2.1rem, 10vw, 2.9rem);
+            line-height: 1.02;
+            margin-bottom: 0.9rem;
+          }
+          .hero-subtext {
+            font-size: 0.95rem;
+            line-height: 1.55;
+            margin-bottom: 1.6rem;
+          }
+        }
+
         .hero-action-btn {
           background-color: #000;
           color: #fff;
@@ -1111,6 +1216,81 @@ export default function HomePage() {
           background-color: var(--c-yellow);
           color: #000;
           transform: translateY(-1px);
+        }
+
+        /* ─── HERO SCANNER PILL ─── */
+        .hero-scanner-container {
+          width: 100%;
+          max-width: 600px;
+          background: rgba(0,0,0,0.65);
+          border: 1px solid rgba(255,255,255,0.15);
+          padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+          border-radius: 50px;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+        .hero-scanner-form {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .hero-scanner-input {
+          flex: 1;
+          min-width: 0;
+          background: transparent;
+          border: none;
+          padding: 0.75rem 0;
+          font-size: 0.92rem;
+          color: #fff;
+          outline: none;
+        }
+        .hero-scanner-input::placeholder {
+          color: rgba(255,255,255,0.55);
+        }
+        .hero-scanner-btn {
+          background: #fff;
+          color: #000;
+          border: none;
+          border-radius: 50px;
+          padding: 0.85rem 1.8rem;
+          font-weight: 800;
+          font-size: 0.82rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.4rem;
+        }
+        .hero-scanner-btn:disabled {
+          opacity: 0.65;
+          cursor: default;
+        }
+
+        @media (max-width: 768px) {
+          .hero-scanner-container {
+            border-radius: 22px;
+            padding: 0.6rem;
+          }
+          .hero-scanner-form {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.6rem;
+          }
+          .hero-scanner-input {
+            padding: 0.9rem 1rem;
+            font-size: 1rem;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+          }
+          .hero-scanner-btn {
+            width: 100%;
+            min-height: 50px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+          }
         }
 
         /* ─── COLOURFUL GRID "DOWNSTAIRS" ─── */
@@ -1724,6 +1904,48 @@ export default function HomePage() {
           text-decoration: underline;
           font-weight: 700;
         }
+
+        /* On phones the claims ledger becomes stacked cards */
+        @media (max-width: 768px) {
+          .reader-table-wrap {
+            border: none;
+            background: transparent;
+            overflow-x: visible;
+          }
+          .reader-table thead {
+            display: none;
+          }
+          .reader-table,
+          .reader-table tbody,
+          .reader-table tr,
+          .reader-table td {
+            display: block;
+            width: 100%;
+          }
+          .reader-table tr {
+            border: 1px solid var(--border-dark);
+            border-radius: 14px;
+            background: #fff;
+            margin-bottom: 1rem;
+            padding: 0.4rem 0;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+          }
+          .reader-table td {
+            padding: 0.65rem 1rem;
+            border-bottom: none;
+            font-size: 0.92rem;
+          }
+          .reader-table td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.66rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #888;
+            margin-bottom: 0.25rem;
+          }
+        }
         .source-link:hover {
           color: #000;
         }
@@ -1895,6 +2117,45 @@ export default function HomePage() {
           margin: 2rem 0;
         }
 
+        .dossier-reality-card {
+          background: #000000;
+          color: #ffffff;
+          border-radius: 24px;
+          padding: 2.5rem;
+        }
+
+        /* Shared shell for full-page white cards (dossier + education) */
+        .dossier-shell {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          text-align: left;
+          padding: 3rem;
+          background: #ffffff;
+          background-image: none;
+          color: #000000;
+          border: 1px solid var(--border-dark);
+          border-radius: 32px;
+          min-height: calc(100vh - 3rem);
+          overflow-y: auto;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+        }
+
+        .dossier-headline {
+          color: #000000;
+          font-size: 2.5rem;
+          margin-bottom: 1rem;
+          text-shadow: none;
+          font-family: var(--serif);
+        }
+
+        .education-videos-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2rem;
+          margin-bottom: 3rem;
+        }
+
         @media (max-width: 900px) {
           .dossier-layout {
             grid-template-columns: 1fr;
@@ -1908,6 +2169,38 @@ export default function HomePage() {
 
           .dossier-main {
             order: 1;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .dossier-shell {
+            padding: 1.5rem 1.1rem 2rem;
+            border-radius: 24px;
+            min-height: 0;
+          }
+          .dossier-headline {
+            font-size: 1.7rem;
+            line-height: 1.12;
+          }
+          .dossier-clash-card {
+            padding: 1.25rem 1.15rem;
+            border-radius: 18px;
+          }
+          .dossier-persp-card {
+            padding: 1.15rem 1rem;
+          }
+          .dossier-deep-dive {
+            padding: 1.25rem 1.1rem;
+            margin: 1.5rem 0;
+          }
+          .dossier-reality-card {
+            padding: 1.5rem 1.2rem;
+            border-radius: 18px;
+          }
+          .education-videos-grid {
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
           }
         }
 
@@ -1954,7 +2247,10 @@ export default function HomePage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 1000;
+          /* Above the fixed mobile header (10000 base / 1000 on phones) and
+             the dropdown menu (9999): a modal must cover the app chrome or
+             its close button is untappable. */
+          z-index: 10001;
           padding: 1.5rem;
         }
 
@@ -2153,7 +2449,13 @@ export default function HomePage() {
           display: flex;
           flex-direction: column;
           background: #000;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           animation: slideDownMenu 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .mobile-dropdown-menu .menu-block {
+          flex: 1 1 auto;
+          min-height: 76px;
         }
         @keyframes slideDownMenu {
           from { transform: translateY(-100%); opacity: 0; }
@@ -2191,7 +2493,53 @@ export default function HomePage() {
           background-color: var(--c-green);
           color: #fff;
         }
-        
+        .menu-block.purple {
+          background-color: var(--c-purple, #a855f7);
+          color: #fff;
+        }
+        .menu-block.cream {
+          background-color: var(--bg-warm, #f4ede3);
+          color: #000;
+        }
+
+        .menu-footer-row {
+          background: #000;
+          padding: 1.1rem 1.5rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .menu-lang-chips {
+          display: flex;
+          gap: 0.5rem;
+        }
+        .menu-lang-chip {
+          background: transparent;
+          color: #fff;
+          border: 1.5px solid rgba(255,255,255,0.35);
+          border-radius: 20px;
+          padding: 8px 14px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .menu-lang-chip.active {
+          background: var(--c-yellow);
+          border-color: var(--c-yellow);
+          color: #000;
+        }
+        .menu-socials {
+          display: flex;
+          gap: 1.1rem;
+        }
+        .menu-socials a {
+          color: #fff;
+          display: flex;
+          align-items: center;
+        }
+
         .menu-block-label {
           font-size: 1.65rem;
           font-weight: 900;
@@ -2225,11 +2573,17 @@ export default function HomePage() {
           .main-content {
             width: 100% !important;
             max-width: 100% !important;
-            padding: 1.25rem 1rem 5.5rem 1rem !important;
+            /* clear the bottom tab bar (64px) plus the home-indicator inset */
+            padding: 1.25rem 1rem calc(5.5rem + env(safe-area-inset-bottom, 0px)) 1rem !important;
             margin-top: calc(56px + env(safe-area-inset-top, 0px)) !important;
             box-shadow: none !important;
             border: none !important;
             border-radius: 0 !important;
+          }
+
+          /* The phone header is 56px tall; anchor the menu flush beneath it */
+          .mobile-dropdown-menu {
+            top: calc(56px + env(safe-area-inset-top, 0px));
           }
 
           /* Native App Mobile Tab toggles */
@@ -2237,11 +2591,11 @@ export default function HomePage() {
           .main-content.mobile-tab-verify #trending-scans-card {
             display: none !important;
           }
-          .main-content.mobile-tab-news .hero-card,
+          .main-content.mobile-tab-news .hero-card:not(.dossier-shell),
           .main-content.mobile-tab-news #trending-scans-card {
             display: none !important;
           }
-          .main-content.mobile-tab-trending .hero-card,
+          .main-content.mobile-tab-trending .hero-card:not(.dossier-shell),
           .main-content.mobile-tab-trending #news-feed-card {
             display: none !important;
           }
@@ -2480,21 +2834,7 @@ export default function HomePage() {
         <main className={`main-content mobile-tab-${activeMobileTab} ${isMobileApp ? 'is-mobile-app-content' : ''}`}>
           {result ? (
             /* Inline Full-Screen Result (Instagram analysis details dossier) */
-            <section className="hero-card" style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'stretch', 
-              textAlign: 'left', 
-              padding: '3rem', 
-              background: '#ffffff', 
-              color: '#000000', 
-              border: '1px solid var(--border-dark)', 
-              borderRadius: '32px',
-              minHeight: 'calc(100vh - 3rem)',
-              overflowY: 'auto',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
-              backgroundImage: 'none'
-            }}>
+            <section className="hero-card dossier-shell">
               {/* Back button to return to home view */}
               <button 
                 onClick={() => setResult(null)} 
@@ -2531,7 +2871,7 @@ export default function HomePage() {
                 </span>
               </div>
 
-              <h2 className="hero-title" style={{ color: '#000000', fontSize: '2.5rem', marginBottom: '1rem', textShadow: 'none', fontFamily: 'var(--serif)' }}>
+              <h2 className="hero-title dossier-headline">
                 {result.headline || 'News Story Analysis'}
               </h2>
 
@@ -2552,9 +2892,11 @@ export default function HomePage() {
                           <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888', fontWeight: 800, marginBottom: '0.5rem' }}>
                             What Happened
                           </div>
-                          <div style={{ fontSize: '1.05rem', color: '#222', lineHeight: '1.6' }}>
-                            {result.fight}
-                          </div>
+                          <ExpandableText
+                            text={result.fight}
+                            lines={6}
+                            style={{ fontSize: '1.05rem', color: '#222', lineHeight: 1.6 }}
+                          />
                         </div>
                       )}
 
@@ -2639,13 +2981,16 @@ export default function HomePage() {
                       {result.reality && (
                         isPolitical ? (
                           <div style={{ margin: '0 0 2.5rem 0' }}>
-                            <div style={{ background: '#000000', color: '#ffffff', borderRadius: '24px', padding: '2.5rem' }}>
+                            <div className="dossier-reality-card">
                               <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.15rem', fontWeight: 900, color: 'var(--c-yellow)', marginBottom: '0.8rem', textAlign: 'center' }}>
                                 ✦ The Brutal Reality ✦
                               </div>
-                              <p style={{ fontSize: '1.05rem', lineHeight: '1.6', textAlign: 'justify', margin: 0 }}>
-                                {result.reality}
-                              </p>
+                              <ExpandableText
+                                text={result.reality}
+                                lines={8}
+                                accent="var(--c-yellow)"
+                                style={{ fontSize: '1.05rem', lineHeight: 1.6 }}
+                              />
                             </div>
                           </div>
                         ) : (
@@ -2653,9 +2998,11 @@ export default function HomePage() {
                             <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#666', fontWeight: 800, marginBottom: '0.8rem' }}>
                               The Full Story
                             </div>
-                            <p style={{ fontSize: '1.05rem', lineHeight: '1.65', color: '#222', margin: 0, textAlign: 'justify' }}>
-                              {result.reality}
-                            </p>
+                            <ExpandableText
+                              text={result.reality}
+                              lines={8}
+                              style={{ fontSize: '1.05rem', lineHeight: 1.65, color: '#222' }}
+                            />
                           </div>
                         )
                       )}
@@ -2755,40 +3102,21 @@ export default function HomePage() {
                 <p className="hero-subtext">{t.heroSubtext}</p>
 
                 {/* Scanner Input — styled like units.gr "Book your Unit" pill */}
-                <div className="hero-scanner-container" style={{
-                  width: '100%', maxWidth: '600px',
-                  background: 'rgba(0,0,0,0.65)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  padding: '0.5rem 0.5rem 0.5rem 1.25rem',
-                  borderRadius: '50px',
-                  backdropFilter: 'blur(16px)',
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                }}>
-                  <form onSubmit={handleSubmit} style={{ display: 'flex', flex: 1, alignItems: 'center', gap: '0.5rem' }}>
+                <div className="hero-scanner-container">
+                  <form onSubmit={handleSubmit} className="hero-scanner-form">
                     <input
+                      className="hero-scanner-input"
                       type="url"
                       value={instagramUrl}
                       onChange={e => setInstagramUrl(e.target.value)}
                       placeholder={t.inputPlaceholder}
                       required
                       disabled={isSubmitting}
-                      style={{
-                        flex: 1, background: 'transparent',
-                        border: 'none', padding: '0.75rem 0',
-                        fontSize: '0.92rem', color: '#fff', outline: 'none',
-                      }}
                     />
                     <button
+                      className="hero-scanner-btn"
                       type="submit"
                       disabled={isSubmitting || !instagramUrl.trim()}
-                      style={{
-                        background: '#fff', color: '#000',
-                        border: 'none', borderRadius: '50px',
-                        padding: '0.85rem 1.8rem', fontWeight: 800,
-                        fontSize: '0.82rem', cursor: 'pointer',
-                        transition: 'all 0.2s', whiteSpace: 'nowrap',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                      }}
                     >
                       {isSubmitting ? t.scanningBtn : t.factCheckBtn} <span style={{ fontSize: '1rem' }}>↗</span>
                     </button>
@@ -2913,7 +3241,7 @@ export default function HomePage() {
                 ) : filtered.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '2rem', fontSize: '0.9rem', color: '#777' }}>No scans match your search or filter.</div>
                 ) : (
-                  <div className="trending-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                  <div className="trending-grid">
                     {filtered.map((reel, idx) => {
                       const uploadDate = reel.data?.uploadedAt 
                         ? new Date(reel.data.uploadedAt) 
@@ -2976,22 +3304,8 @@ export default function HomePage() {
             </>
           ) : (
             /* Education Dashboard Card */
-            <section className="hero-card" style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'stretch', 
-              textAlign: 'left', 
-              padding: '3rem', 
-              background: '#ffffff', 
-              color: '#000000', 
-              border: '1px solid var(--border-dark)', 
-              borderRadius: '32px',
-              minHeight: 'calc(100vh - 3rem)',
-              overflowY: 'auto',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
-              backgroundImage: 'none'
-            }}>
-              <h2 className="hero-title" style={{ color: '#000', fontSize: '2.5rem', marginBottom: '0.5rem', textShadow: 'none', fontFamily: 'var(--serif)' }}>
+            <section className="hero-card dossier-shell">
+              <h2 className="hero-title dossier-headline" style={{ marginBottom: '0.5rem' }}>
                 Critical Thinking Academy
               </h2>
               <p style={{ fontSize: '0.95rem', color: '#555', marginBottom: '2rem', fontWeight: 500, fontFamily: 'var(--sans)' }}>
@@ -3011,7 +3325,7 @@ export default function HomePage() {
                 Lesson 01: Core Media & Thinking Frameworks
               </h3>
               
-              <div className="education-videos-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '3rem' }}>
+              <div className="education-videos-grid">
                 {/* Video 1 */}
                 <div style={{ 
                   display: 'flex', 
@@ -3510,10 +3824,10 @@ export default function HomePage() {
                 We query thousands of news sources and social media posts, analyzing left-leaning and right-leaning frames to help citizens spot the spin, decode media bias, and think critically.
               </span>
             </p>
-            <button 
-              className="side-cta-btn" 
+            <button
+              className="side-cta-btn"
               onClick={() => setShowAboutModal(false)}
-              style={{ border: 'none', borderRadius: '8px' }}
+              style={{ border: 'none', borderRadius: '8px', aspectRatio: 'auto', width: '100%', height: 'auto' }}
             >
               Close
             </button>
@@ -3544,6 +3858,40 @@ export default function HomePage() {
             </button>
           </div>
         </header>
+      )}
+
+      {/* ═══ MOBILE BOTTOM TAB BAR ═══ */}
+      {isMobileApp && (
+        <nav className="mobile-bottom-nav">
+          <button
+            className={`mobile-nav-item ${activeMobileTab === 'verify' && mainView === 'home' ? 'active' : ''}`}
+            onClick={() => { setMobileMenuOpen(false); handleMobileNav('verify'); }}
+          >
+            <Search size={21} />
+            <span>Verify</span>
+          </button>
+          <button
+            className={`mobile-nav-item ${activeMobileTab === 'news' && mainView === 'home' ? 'active' : ''}`}
+            onClick={() => { setMobileMenuOpen(false); handleMobileNav('news'); }}
+          >
+            <FileText size={21} />
+            <span>News</span>
+          </button>
+          <button
+            className={`mobile-nav-item ${activeMobileTab === 'trending' && mainView === 'home' ? 'active' : ''}`}
+            onClick={() => { setMobileMenuOpen(false); handleMobileNav('trending'); }}
+          >
+            <TrendingUp size={21} />
+            <span>Trending</span>
+          </button>
+          <button
+            className="mobile-nav-item"
+            onClick={() => { setMobileMenuOpen(false); handleMobileNav('profile'); }}
+          >
+            <User size={21} />
+            <span>{userEmail ? 'Account' : 'Login'}</span>
+          </button>
+        </nav>
       )}
 
       {/* ═══ MOBILE DROPDOWN MENU ═══ */}
@@ -3588,8 +3936,8 @@ export default function HomePage() {
             <div className="menu-block-num">03 <span className="arrow">↗</span></div>
           </button>
           
-          <button 
-            className="menu-block green" 
+          <button
+            className="menu-block green"
             onClick={() => {
               setMobileMenuOpen(false);
               handleMobileNav('news');
@@ -3598,6 +3946,51 @@ export default function HomePage() {
             <div className="menu-block-label">{t.newsfeedBtn}</div>
             <div className="menu-block-num">04 <span className="arrow">↗</span></div>
           </button>
+
+          <button
+            className="menu-block purple"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setActiveMobileTab('verify');
+              scanSeq.current++;
+              setResult(null);
+              setMainView('education');
+              window.scrollTo(0, 0);
+            }}
+          >
+            <div className="menu-block-label">Media Literacy</div>
+            <div className="menu-block-num">05 <span className="arrow">↗</span></div>
+          </button>
+
+          <button
+            className="menu-block cream"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setShowAboutModal(true);
+            }}
+          >
+            <div className="menu-block-label">{t.aboutUsBtn}</div>
+            <div className="menu-block-num">06 <span className="arrow">↗</span></div>
+          </button>
+
+          <div className="menu-footer-row">
+            <div className="menu-lang-chips">
+              {(['EN', 'HI', 'HIN'] as const).map(lang => (
+                <button
+                  key={lang}
+                  className={`menu-lang-chip ${currentLang === lang ? 'active' : ''}`}
+                  onClick={() => setCurrentLang(lang)}
+                >
+                  {lang === 'EN' ? 'English' : lang === 'HI' ? 'हिंदी' : 'Hinglish'}
+                </button>
+              ))}
+            </div>
+            <div className="menu-socials">
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><Instagram size={20} /></a>
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><Facebook size={20} /></a>
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><Youtube size={20} /></a>
+            </div>
+          </div>
         </div>
       )}
 

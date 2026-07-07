@@ -35,6 +35,31 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+## Mobile App (Capacitor / iOS)
+
+The iOS app is the same Next.js UI wrapped in a Capacitor WebView. On phones the site renders a native-style shell: fixed masthead, bottom tab bar (Verify / News / Trending / Login), full-screen menu with every section, and phone-tuned layouts for the scanner, trending cards, scan dossiers, the newspaper feed, and article pages.
+
+### Building the app bundle
+
+```bash
+npm run build:mobile   # static export (out/) + copies it into ios/
+npx cap open ios       # then build/run from Xcode
+```
+
+`build:mobile` temporarily stashes `app/api` (server routes can't be statically exported), builds with `BUILD_TARGET=mobile` (`output: 'export'`, `trailingSlash`), restores the routes, and runs `npx cap copy ios`.
+
+### Backend URL inside the app
+
+The WebView has no server, so the scanner posts `/api/analyze` to a hosted backend. Set it at build time:
+
+```bash
+NEXT_PUBLIC_API_BASE=https://your-deployment.example npm run build:mobile
+```
+
+Without it, the app falls back to the dev machine's LAN address in `lib/config.ts` (fine for local testing, wrong for release builds — set the env var). Trending scans and auth talk to Supabase directly from the device and need no backend.
+
+The regular web deployment is unaffected: `npm run build` keeps `/api/analyze` as a server route.
+
 ## Newsfeed Image Fetching & PIB Integration
 We have integrated a retro newspaper Newsfeed. Images are sourced automatically from Wikimedia Commons or can be set manually (e.g. from PIB).
 

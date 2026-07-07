@@ -57,6 +57,78 @@ const FlipPage = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>
 );
 FlipPage.displayName = 'FlipPage';
 
+/* ─── Mobile card image with graceful fallback ───
+   Renders the story image (object-fit: cover, fixed aspect box) and, when the
+   imageUrl is empty or the request errors, swaps in a retro printer's-ornament
+   placeholder instead of leaking raw alt text into the layout. */
+function CardImage({
+  story,
+  sectionLabel,
+  variant,
+}: {
+  story: Article;
+  sectionLabel: string;
+  variant: 'lead' | 'thumb';
+}) {
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(story.imageUrl) && !failed;
+
+  return (
+    <div className={`np-card-img np-card-img--${variant}`}>
+      {showImage ? (
+        <>
+          <img
+            src={story.imageUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed(true)}
+          />
+          {variant === 'lead' && story.imageCredit ? (
+            <span className="credit">{story.imageCredit}</span>
+          ) : null}
+        </>
+      ) : (
+        <div className="np-card-placeholder" aria-hidden="true">
+          <span className="glyph">❦</span>
+          {variant === 'lead' && <span className="label">{sectionLabel}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Reader-modal image with the same graceful fallback ─── */
+function ReaderImage({ story }: { story: Article }) {
+  const [failed, setFailed] = useState(false);
+  if (!story.imageUrl || failed) return null;
+  return (
+    <div style={{
+      position: 'relative', marginBottom: '1.75rem',
+      border: '1px solid #1A1A1A', overflow: 'hidden',
+    }}>
+      <img
+        src={story.imageUrl}
+        alt=""
+        onError={() => setFailed(true)}
+        style={{
+          width: '100%', maxHeight: '420px',
+          objectFit: 'cover', display: 'block',
+          filter: 'grayscale(100%) contrast(1.1) brightness(.95)',
+          mixBlendMode: 'multiply',
+        }}
+      />
+      {story.imageCredit ? (
+        <div style={{
+          fontSize: '.6rem', opacity: .7,
+          textAlign: 'right', padding: '.2rem .4rem',
+          borderTop: '1px dashed rgba(0,0,0,.1)',
+        }}>{story.imageCredit}</div>
+      ) : null}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════════ */
@@ -170,6 +242,58 @@ export default function NewspaperFeed() {
         .np-tabs button.on {
           background: var(--brick); border-color: var(--brick);
           color: #fff;
+        }
+
+        @media (max-width: 768px) {
+          .np-tabs {
+            width: 100%;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            gap: 0.5rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            margin-bottom: 1rem;
+            padding-bottom: 0.25rem;
+          }
+          .np-tabs::-webkit-scrollbar { display: none; }
+          .np-tabs button {
+            white-space: nowrap;
+            padding: 0.55rem 1rem;
+            font-size: 0.82rem;
+            min-height: 40px;
+            border-radius: 3px;
+            -webkit-tap-highlight-color: transparent;
+          }
+        }
+
+        /* ═══ EMPTY EDITION ═══ */
+        .np-empty {
+          width: 100%;
+          max-width: 560px;
+          background: var(--paper);
+          border: 1.5px solid var(--rule);
+          box-shadow: 3px 3px 0 #000;
+          padding: 2.5rem 1.5rem;
+          margin: 0.5rem auto 1rem;
+          text-align: center;
+          font-family: var(--font-lora), Georgia, serif;
+        }
+        .np-empty-glyph {
+          display: block;
+          font-size: 2rem;
+          margin-bottom: 0.6rem;
+        }
+        .np-empty-title {
+          font-family: var(--font-playfair), serif;
+          font-weight: 800;
+          font-size: 1.25rem;
+          margin-bottom: 0.4rem;
+        }
+        .np-empty-copy {
+          font-size: 0.9rem;
+          font-style: italic;
+          color: #555;
         }
 
         /* ═══ FLIP BOOK CONTAINER ═══ */
@@ -335,52 +459,262 @@ export default function NewspaperFeed() {
           font-size: .65rem; margin-top: .5rem;
           text-align: center;
         }
+
+        /* ═══ MOBILE FEED CARDS (only rendered on the isMobile branch) ═══ */
+        .np-mobile-feed {
+          width: 100%; max-width: 600px;
+          min-width: 0;
+          display: flex; flex-direction: column;
+          gap: 1rem;
+        }
+        .np-card {
+          background: var(--paper);
+          border: 1.5px solid var(--rule);
+          box-shadow: 3px 3px 0 #000;
+          cursor: pointer;
+          overflow: hidden;
+          min-width: 0;
+          -webkit-tap-highlight-color: transparent;
+          transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+        }
+        /* Touch affordance: press-down state, no hover dependency */
+        .np-card:active {
+          transform: translate(2px, 2px);
+          box-shadow: 1px 1px 0 #000;
+          opacity: .95;
+        }
+        .np-card.read { background: #e5dec9; }
+        .np-card.read .np-card-hed { color: #8a2a1f; }
+
+        /* Lead card: full-width image stacked on top (Apple News style) */
+        .np-card--lead { display: block; }
+        .np-card--lead .np-card-body { padding: .95rem 1rem 1.1rem; }
+
+        /* Row cards: text left, square thumbnail right (NYT app style) */
+        .np-card--row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 96px;
+          gap: .9rem;
+          align-items: center;
+          padding: .85rem .9rem;
+        }
+        .np-card--row .np-card-body { min-width: 0; }
+
+        /* Image boxes */
+        .np-card-img {
+          position: relative;
+          overflow: hidden;
+          background: #e9e1d0;
+        }
+        .np-card-img img {
+          width: 100%; height: 100%;
+          max-width: 100%;
+          object-fit: cover; display: block;
+          filter: grayscale(100%) contrast(1.1) brightness(.95);
+          mix-blend-mode: multiply;
+        }
+        .np-card-img--lead {
+          width: 100%;
+          aspect-ratio: 3 / 2;
+          border-bottom: 1.5px solid var(--rule);
+        }
+        .np-card-img--thumb {
+          width: 96px; height: 96px;
+          border: 1px solid var(--rule);
+        }
+        .np-card-img--lead .credit {
+          position: absolute; bottom: 0; right: 0;
+          font-size: .55rem; padding: .15rem .4rem;
+          background: rgba(244,239,230,.9);
+          color: var(--ink); opacity: .8;
+        }
+
+        /* Missing / broken image → printer's ornament placeholder */
+        .np-card-placeholder {
+          width: 100%; height: 100%;
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          gap: .3rem;
+          background:
+            repeating-linear-gradient(-45deg, rgba(26,26,26,.05) 0 2px, transparent 2px 8px),
+            #efe8d9;
+        }
+        .np-card-placeholder .glyph {
+          font-family: var(--font-playfair), serif;
+          font-size: 1.7rem; line-height: 1;
+          color: rgba(26,26,26,.4);
+        }
+        .np-card-img--thumb .np-card-placeholder .glyph { font-size: 1.15rem; }
+        .np-card-placeholder .label {
+          font-family: var(--font-playfair), serif;
+          font-weight: 700; font-size: .6rem;
+          letter-spacing: .14em; text-transform: uppercase;
+          color: rgba(26,26,26,.5);
+        }
+
+        /* Card typography */
+        .np-card-kicker {
+          display: block;
+          font-family: var(--font-playfair), serif;
+          font-weight: 800; font-size: .62rem;
+          text-transform: uppercase; letter-spacing: .14em;
+          color: var(--brick);
+          margin-bottom: .35rem;
+        }
+        .np-card-hed {
+          font-family: var(--font-playfair), serif;
+          font-weight: 800;
+          font-size: 1.1rem; line-height: 1.25;
+          color: var(--ink);
+          margin: 0 0 .35rem;
+          overflow-wrap: break-word;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 3;
+          overflow: hidden;
+        }
+        .np-card--lead .np-card-hed {
+          font-size: 1.35rem; line-height: 1.2;
+          -webkit-line-clamp: 4;
+        }
+        .np-card-dek {
+          font-style: italic;
+          font-size: .9rem; line-height: 1.5;
+          color: var(--ink); opacity: .85;
+          margin: 0 0 .45rem;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          overflow: hidden;
+        }
+        .np-card--lead .np-card-dek { -webkit-line-clamp: 3; }
+        .np-card-by {
+          display: block;
+          font-size: .62rem; font-weight: 700;
+          text-transform: uppercase; letter-spacing: .06em;
+          color: var(--brick);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* ═══ PHONE-WIDTH REFINEMENTS (desktop flipbook never renders here) ═══ */
+        @media (max-width: 768px) {
+          .np-canvas {
+            padding: 1.25rem .75rem 1.5rem;
+            overflow-x: hidden;
+          }
+          .np-card--row {
+            grid-template-columns: minmax(0, 1fr) 88px;
+            gap: .75rem;
+            padding: .8rem .85rem;
+          }
+          .np-card-img--thumb { width: 88px; height: 88px; }
+
+          /* Article reader modal: fit phone screens */
+          .np-reader-overlay {
+            padding: .9rem .6rem !important;
+            align-items: flex-start !important;
+          }
+          /* Kill the inline margin:auto so align-items can top-align the sheet */
+          .np-reader { margin: 0 auto !important; padding: 1.5rem 1.1rem 2rem !important; }
+          .np-reader h1 { font-size: 1.65rem !important; line-height: 1.12 !important; }
+          .np-reader .np-reader-sub { font-size: .98rem !important; }
+          .np-reader .np-reader-meta {
+            flex-wrap: wrap !important;
+            gap: .3rem .75rem !important;
+            margin-bottom: 1.25rem !important;
+          }
+          .np-reader .reader-body {
+            font-size: .98rem !important;
+            line-height: 1.6 !important;
+            text-align: left !important;
+          }
+        }
+        @media (max-width: 360px) {
+          .np-card--row { grid-template-columns: minmax(0, 1fr) 76px; }
+          .np-card-img--thumb { width: 76px; height: 76px; }
+          .np-card-hed { font-size: 1.05rem; }
+          .np-card--lead .np-card-hed { font-size: 1.25rem; }
+        }
       `}</style>
 
-      {/* Section tabs *      {/* Book / Feed */}
+      {/* Section tabs */}
+      <div className="np-tabs" role="tablist" aria-label="News sections">
+        {(Object.keys(sectionMeta) as SectionKey[]).map(key => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={activeSection === key}
+            className={activeSection === key ? 'on' : ''}
+            onClick={() => {
+              setActiveSection(key);
+              setCurrentSpread(0);
+              bookRef.current?.pageFlip()?.turnToPage?.(0);
+            }}
+          >
+            {sectionMeta[key].label}
+          </button>
+        ))}
+      </div>
+
+      {/* Empty edition */}
+      {mounted && articles.length === 0 && (
+        <div className="np-empty">
+          <span className="np-empty-glyph">❦</span>
+          <div className="np-empty-title">No stories in this edition yet</div>
+          <div className="np-empty-copy">
+            The {meta.label} desk hasn&apos;t filed for today&apos;s paper. Check back soon.
+          </div>
+        </div>
+      )}
+
+      {/* Book / Feed */}
       {mounted && articles.length > 0 && (
         isMobile ? (
-          <div className="np-mobile-feed" style={{ width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '0 0.5rem' }}>
-            {articles.map((story) => (
-              <div
-                key={story.id}
-                className={`np-band ${clickedArticles.includes(story.id) ? 'clicked' : ''}`}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: story.imageUrl ? '110px 1fr' : '1fr',
-                  gap: '1rem',
-                  background: clickedArticles.includes(story.id) ? '#e5dec9' : 'var(--paper)',
-                  border: '1.5px solid var(--rule)',
-                  borderRadius: '12px',
-                  padding: '0.85rem',
-                  cursor: 'pointer',
-                  minHeight: '110px',
-                  boxShadow: '3px 3px 0px #000',
-                  transition: 'transform 0.1s'
-                }}
-                onClick={() => {
-                  setSelectedArticle(story);
-                  markArticleClicked(story.id);
-                }}
-              >
-                {story.imageUrl && (
-                  <div className="np-band-img" style={{ height: '90px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--rule)' }}>
-                    <img src={story.imageUrl} alt={story.headline} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                )}
-                <div className="np-band-text" style={{ padding: '0 0.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, lineHeight: '1.2', color: 'var(--ink)', marginBottom: '0.3rem', fontFamily: 'var(--font-playfair), Georgia, serif' }}>
-                    {story.headline}
-                  </h3>
-                  <p className="sub" style={{ fontSize: '0.78rem', lineHeight: '1.3', opacity: 0.85, margin: '0 0 0.4rem 0', fontStyle: 'italic' }}>
-                    {story.subhead}
-                  </p>
-                  <span className="by" style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--brick)' }}>
-                    {story.byline}
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div className="np-mobile-feed">
+            {articles.map((story, idx) => {
+              const isLead = idx === 0;
+              const isRead = clickedArticles.includes(story.id);
+              const openStory = () => {
+                setSelectedArticle(story);
+                markArticleClicked(story.id);
+              };
+              return (
+                <article
+                  key={story.id}
+                  className={`np-card ${isLead ? 'np-card--lead' : 'np-card--row'} ${isRead ? 'read' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={openStory}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openStory();
+                    }
+                  }}
+                >
+                  {isLead ? (
+                    <>
+                      <CardImage story={story} sectionLabel={meta.label} variant="lead" />
+                      <div className="np-card-body">
+                        <span className="np-card-kicker">{meta.label}</span>
+                        <h3 className="np-card-hed">{story.headline}</h3>
+                        <p className="np-card-dek">{story.subhead}</p>
+                        <span className="np-card-by">{story.byline}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="np-card-body">
+                        <h3 className="np-card-hed">{story.headline}</h3>
+                        <p className="np-card-dek">{story.subhead}</p>
+                        <span className="np-card-by">{story.byline}</span>
+                      </div>
+                      <CardImage story={story} sectionLabel={meta.label} variant="thumb" />
+                    </>
+                  )}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="np-book-wrap">
@@ -485,8 +819,8 @@ export default function NewspaperFeed() {
         )
       )}
 
-      {/* Navigation - hide on mobile */}
-      {!isMobile && (
+      {/* Navigation - hide on mobile and for empty editions */}
+      {!isMobile && articles.length > 0 && (
         <>
           <div className="np-nav">
             <button onClick={() => bookRef.current?.pageFlip()?.flipPrev()}>← Previous</button>
@@ -499,7 +833,8 @@ export default function NewspaperFeed() {
 
       {/* Article Reader Modal Overlay */}
       {selectedArticle && (
-        <div 
+        <div
+          className="np-reader-overlay"
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
@@ -508,10 +843,11 @@ export default function NewspaperFeed() {
             zIndex: 99999,
             padding: '2rem 1rem',
             overflowY: 'auto'
-          }} 
+          }}
           onClick={() => setSelectedArticle(null)}
         >
-          <div 
+          <div
+            className="np-reader"
             style={{
               background: '#F4EFE6',
               color: '#1A1A1A',
@@ -562,7 +898,7 @@ export default function NewspaperFeed() {
               marginBottom: '.65rem', color: '#1A1A1A',
             }}>{selectedArticle.headline}</h1>
             
-            <p style={{
+            <p className="np-reader-sub" style={{
               fontSize: '1.1rem', fontStyle: 'italic',
               lineHeight: '1.4', opacity: .88,
               marginBottom: '1.25rem',
@@ -570,7 +906,7 @@ export default function NewspaperFeed() {
               borderBottom: '4px double #1A1A1A',
             }}>{selectedArticle.subhead}</p>
 
-            <div style={{
+            <div className="np-reader-meta" style={{
               display: 'flex', justifyContent: 'space-between',
               alignItems: 'center',
               fontSize: '.8rem', fontWeight: 700,
@@ -588,28 +924,7 @@ export default function NewspaperFeed() {
               <span style={{ opacity: .5 }}>ONLY THE TRUTH · 2026</span>
             </div>
 
-            {selectedArticle.imageUrl && (
-              <div style={{
-                position: 'relative', marginBottom: '1.75rem',
-                border: '1px solid #1A1A1A', overflow: 'hidden',
-              }}>
-                <img 
-                  src={selectedArticle.imageUrl} 
-                  alt={selectedArticle.headline}
-                  style={{
-                    width: '100%', maxHeight: '420px',
-                    objectFit: 'cover', display: 'block',
-                    filter: 'grayscale(100%) contrast(1.1) brightness(.95)',
-                    mixBlendMode: 'multiply'
-                  }}
-                />
-                <div style={{
-                  fontSize: '.6rem', opacity: .7,
-                  textAlign: 'right', padding: '.2rem .4rem',
-                  borderTop: '1px dashed rgba(0,0,0,.1)',
-                }}>{selectedArticle.imageCredit}</div>
-              </div>
-            )}
+            <ReaderImage key={selectedArticle.id} story={selectedArticle} />
 
             <div className="reader-body" style={{
               fontSize: '1.05rem', lineHeight: '1.58',
