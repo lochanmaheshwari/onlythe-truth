@@ -485,7 +485,11 @@ export async function POST(request: Request) {
     }
 
     const url = normalizeUrl(rawUrl);
+    console.log("POST api/analyze [DEBUG] rawUrl:", rawUrl);
+    console.log("POST api/analyze [DEBUG] normalizedUrl:", url);
+    console.log("POST api/analyze [DEBUG] mediaId:", getInstagramMediaId(url));
     const unsupportedReason = getUnsupportedReason(url);
+    console.log("POST api/analyze [DEBUG] unsupportedReason:", unsupportedReason);
     if (unsupportedReason) {
       return new Response(JSON.stringify({ error: unsupportedReason }), {
         status: 400,
