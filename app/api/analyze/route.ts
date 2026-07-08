@@ -7,7 +7,15 @@ import path from 'path';
 
 
 function getInstagramMediaId(url: string): string | null {
-  const match = url.match(/instagram\.com\/(?:reel|reels|p|tv|share\/r|share\/p)\/([a-zA-Z0-9_-]+)/i);
+  if (!url) return null;
+
+  // Matches /reel/ID, /reels/ID, /p/ID, /tv/ID — with or without a
+  // username prefix like /username/reel/ID. Also handles /share/p/ID.
+  const match =
+    url.match(/instagram\.com\/(?:[^/?#]+\/)?(?:reel|reels|p|tv)\/([a-zA-Z0-9_-]+)/i) ||
+    // Explicit share links: /share/r/ID, /share/p/ID, /share/reel(s)/ID
+    url.match(/instagram\.com\/share\/(?:reel|reels|r|p)\/([a-zA-Z0-9_-]+)/i);
+
   return match?.[1] || null;
 }
 
