@@ -347,6 +347,7 @@ export default function HomePage() {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
   // Main View states
@@ -477,6 +478,7 @@ export default function HomePage() {
     
     setAuthLoading(true);
     setAuthError('');
+    setAuthSuccess('');
     
     try {
       if (isSignUp) {
@@ -485,17 +487,10 @@ export default function HomePage() {
           password: password.trim()
         });
         if (error) throw error;
-        if (data?.user) {
-          const email = data.user.email || inputEmail.trim();
-          localStorage.setItem('userEmail', email);
-          setUserEmail(email);
-          setShowLoginModal(false);
-        } else {
-          localStorage.setItem('userEmail', inputEmail.trim());
-          setUserEmail(inputEmail.trim());
-          setShowLoginModal(false);
-          alert("Sign up successful! (A confirmation link has been sent to your email, but you are logged in for this session)");
-        }
+        
+        setAuthSuccess("Sign up successful! A confirmation link has been sent to your email. Please check your inbox and verify your email to log in.");
+        setInputEmail('');
+        setPassword('');
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: inputEmail.trim(),
@@ -507,19 +502,14 @@ export default function HomePage() {
           localStorage.setItem('userEmail', email);
           setUserEmail(email);
           setShowLoginModal(false);
+          setInputEmail('');
+          setPassword('');
+          window.dispatchEvent(new Event('storage'));
         }
       }
-      setInputEmail('');
-      setPassword('');
-      window.dispatchEvent(new Event('storage'));
     } catch (err: any) {
-      console.warn("Supabase Auth failed, falling back to local session:", err.message);
-      localStorage.setItem('userEmail', inputEmail.trim());
-      setUserEmail(inputEmail.trim());
-      setInputEmail('');
-      setPassword('');
-      setShowLoginModal(false);
-      window.dispatchEvent(new Event('storage'));
+      console.error("Supabase Auth error:", err.message);
+      setAuthError(err.message || "Authentication failed. Please check your credentials.");
     } finally {
       setAuthLoading(false);
     }
@@ -3961,7 +3951,35 @@ export default function HomePage() {
                 ? 'Sign up to build your critical thinking index, track polarized narratives, and learn media literacy skills.' 
                 : 'Log in to your account to monitor narrative tracks, view bookmarked scans, and retake the thinking test.'}
             </p>
-            {userEmail ? (
+            {authSuccess ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginTop: '1.5rem', textAlign: 'center' }}>
+                <div style={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '50%',
+                  backgroundColor: '#10b981',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.75rem',
+                  fontWeight: 900
+                }}>
+                  ✓
+                </div>
+                <h4 style={{ fontWeight: 800, color: '#10b981', fontSize: '1.1rem' }}>Check Your Email</h4>
+                <p style={{ fontSize: '0.85rem', lineHeight: 1.45, color: '#444' }}>
+                  {authSuccess}
+                </p>
+                <button 
+                  className="side-cta-btn" 
+                  onClick={() => { setShowLoginModal(false); setAuthSuccess(''); }}
+                  style={{ border: 'none', borderRadius: '8px', cursor: 'pointer', padding: '0.8rem 2rem', background: '#000', color: '#fff', marginTop: '0.5rem' }}
+                >
+                  Okay
+                </button>
+              </div>
+            ) : userEmail ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
                 <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>
                   You are currently logged in as: <br />
