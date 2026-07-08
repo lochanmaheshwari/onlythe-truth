@@ -481,6 +481,11 @@ export default function HomePage() {
     }
   }, [scannedUrl, result]);
 
+  const getInstagramMediaId = (url: string): string | null => {
+    const match = url.match(/instagram\.com\/(?:reel|reels|p|share\/r|share\/p)\/([a-zA-Z0-9_-]+)/i);
+    return match?.[1] || null;
+  };
+
   const normalizeUrl = (u: string) => {
     if (!u) return '';
     let trimmed = u.trim();
@@ -505,10 +510,10 @@ export default function HomePage() {
       }
 
       if (hostname.endsWith('instagram.com')) {
-        const match = path.match(/^\/(reel|reels|p)\/([a-zA-Z0-9_-]+)/i);
-        if (match?.[2]) {
-          const kind = match[1].toLowerCase() === 'p' ? 'p' : 'reel';
-          return `https://www.instagram.com/${kind}/${match[2]}/`;
+        const mediaId = getInstagramMediaId(trimmed);
+        if (mediaId) {
+          const isPost = /\/p\//i.test(trimmed) || /\/share\/p\//i.test(trimmed);
+          return `https://www.instagram.com/${isPost ? 'p' : 'reel'}/${mediaId}/`;
         }
       }
 
@@ -519,7 +524,7 @@ export default function HomePage() {
       // Fall through to a conservative cleanup.
     }
 
-    return trimmed.split('?')[0].replace(/\/+$/, '');
+    return trimmed.split('?')[0].split('#')[0].replace(/\/+$/, '');
   };
 
   const runAnalysis = async (rawUrl: string) => {
