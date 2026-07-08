@@ -121,6 +121,7 @@ export default function HomePage() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [loadingError, setLoadingError] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [showAllSources, setShowAllSources] = useState(false);
 
   // Redesign dynamic states
   const [newsfeedList, setNewsfeedList] = useState<any[]>([]);
@@ -326,6 +327,7 @@ export default function HomePage() {
 
 
   const handleMobileNav = (tab: 'verify' | 'news' | 'trending' | 'profile') => {
+    setResult(null);
     setActiveMobileTab(tab);
     if (window.innerWidth <= 768) {
       window.scrollTo(0, 0);
@@ -526,6 +528,7 @@ export default function HomePage() {
     setIsSubmitting(true);
     setLoadingError('');
     setResult(null);
+    setShowAllSources(false);
     setScannedUrl(url);
     setLoadingStep(1);
 
@@ -562,8 +565,7 @@ export default function HomePage() {
   };
 
   const scrollToVerify = () => {
-    const el = document.querySelector('.hero-scanner-container');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const scrollToNews = () => {
@@ -1743,13 +1745,13 @@ export default function HomePage() {
 
         .reader-sources-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 1rem;
         }
 
         @media (max-width: 600px) {
           .reader-sources-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
           }
         }
 
@@ -2595,8 +2597,7 @@ export default function HomePage() {
                         <div className="dossier-persp-grid">
                           {result.left && (
                             <div className="dossier-persp-card left">
-                              <span className="dossier-persp-chip left">What the opposition says</span>
-                              <div className="dossier-persp-card-title">How the opposition-side framing presents the case</div>
+                              <span className="dossier-persp-chip left">Left Side Argument</span>
                               <p className="dossier-persp-card-copy">{result.left.summary}</p>
                               {result.left.keyPoints && result.left.keyPoints.length > 0 && (
                                 <>
@@ -2627,8 +2628,7 @@ export default function HomePage() {
 
                           {result.right && (
                             <div className="dossier-persp-card right">
-                              <span className="dossier-persp-chip right">What the government says</span>
-                              <div className="dossier-persp-card-title">How the government-side framing presents the case</div>
+                              <span className="dossier-persp-chip right">Right Side Argument</span>
                               <p className="dossier-persp-card-copy">{result.right.summary}</p>
                               {result.right.keyPoints && result.right.keyPoints.length > 0 && (
                                 <>
@@ -2685,28 +2685,50 @@ export default function HomePage() {
                       )}
 
                       {/* Claims Ledger Table */}
-                      <ClaimsTable tableData={result.table} />
+                      <ClaimsTable tableData={result.table} articles={result.articles} />
 
                       {/* Sources Consulted */}
-                      {result.articles && result.articles.length > 0 && (
-                        <div style={{ marginTop: '2.5rem' }}>
-                          <h3 className="reader-sources-title">Verified Sources</h3>
-                          <div className="reader-sources-grid">
-                            {result.articles.map((art: any, i: number) => (
-                              <a 
-                                key={i} 
-                                href={art.link || '#'} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="reader-source-item"
-                              >
-                                <span className="reader-source-title">{art.title}</span>
-                                <span className="reader-source-name">{art.source} ↗</span>
-                              </a>
-                            ))}
+                      {result.articles && result.articles.length > 0 && (() => {
+                        const displayedSources = showAllSources ? result.articles : result.articles.slice(0, 6);
+                        return (
+                          <div style={{ marginTop: '2.5rem' }}>
+                            <h3 className="reader-sources-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>Verified Sources</span>
+                              {result.articles.length > 6 && (
+                                <button
+                                  onClick={() => setShowAllSources(!showAllSources)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--c-blue)',
+                                    fontWeight: 800,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline',
+                                    padding: '0 0.5rem'
+                                  }}
+                                >
+                                  {showAllSources ? 'View Less' : `View More (${result.articles.length - 6} more)`}
+                                </button>
+                              )}
+                            </h3>
+                            <div className="reader-sources-grid">
+                              {displayedSources.map((art: any, i: number) => (
+                                <a 
+                                  key={i} 
+                                  href={art.link || '#'} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="reader-source-item"
+                                >
+                                  <span className="reader-source-title">{art.title}</span>
+                                  <span className="reader-source-name">{art.source} ↗</span>
+                                </a>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Copy-Paste Fact-Check Comments */}
                       <div className="reader-comments-section" style={{ marginTop: '2.5rem', borderTop: '2px solid var(--border-dark)', paddingTop: '2rem' }}>
@@ -2757,15 +2779,9 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* Sidebar: compact embed + core conflict (political only) */}
+                    {/* Sidebar: compact embed only */}
                     <aside className="dossier-sidebar">
                       <InstagramEmbed url={embedUrl} compact />
-                      {isPolitical && result.fight && (
-                        <div className="dossier-conflict-compact">
-                          <div className="dossier-conflict-compact-label">The Core Conflict</div>
-                          <div className="dossier-conflict-compact-text">"{result.fight}"</div>
-                        </div>
-                      )}
                     </aside>
                   </div>
                 );
@@ -2953,6 +2969,7 @@ export default function HomePage() {
                           key={reel.id}
                           onClick={() => {
                             setResult(reel.data);
+                            setShowAllSources(false);
                             setScannedUrl(reel.url);
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
@@ -3581,8 +3598,8 @@ export default function HomePage() {
             top: 0,
             left: 0,
             right: 0,
-            bottom: 0,
-            zIndex: 99999,
+            bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+            zIndex: 9999,
             background: '#fcfaf7',
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch'
@@ -3707,7 +3724,7 @@ export default function HomePage() {
       )}
 
       {/* ═══ NATIVE MOBILE BOTTOM TAB BAR ═══ */}
-      {isMobileApp && !result && (
+      {isMobileApp && (
         <nav className="mobile-tab-bar" style={{
           position: 'fixed',
           bottom: 0,

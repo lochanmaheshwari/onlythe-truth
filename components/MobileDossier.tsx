@@ -78,6 +78,7 @@ export default function MobileDossier({ result, onBack }: MobileDossierProps) {
 
   const [expandedClaimIdx, setExpandedClaimIdx] = useState<number | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [showAllSources, setShowAllSources] = useState(false);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -407,7 +408,7 @@ export default function MobileDossier({ result, onBack }: MobileDossierProps) {
                         textTransform: 'uppercase',
                         marginBottom: '8px'
                       }}>
-                        Left-Leaning / Critical Stance
+                        Left Side Argument
                       </div>
                       <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#1e293b', fontWeight: 500, margin: '0 0 10px 0' }}>
                         {result.left.summary}
@@ -456,7 +457,7 @@ export default function MobileDossier({ result, onBack }: MobileDossierProps) {
                         textTransform: 'uppercase',
                         marginBottom: '8px'
                       }}>
-                        Right-Leaning / Official Stance
+                        Right Side Argument
                       </div>
                       <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#451a03', fontWeight: 500, margin: '0 0 10px 0' }}>
                         {result.right.summary}
@@ -654,17 +655,27 @@ export default function MobileDossier({ result, onBack }: MobileDossierProps) {
                             
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#78716c' }}>
                               <span>Verified Source:</span>
-                              {row.link ? (
-                                <a 
-                                  href={row.link} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{ color: '#8b5cf6', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px', textDecoration: 'underline' }}
-                                >
-                                  {row.source} <ExternalLink size={10} />
-                                </a>
-                              ) : (
+                              {row.link || (result.articles && result.articles.some((art: any) => art.source && row.source && art.source.toLowerCase().trim() === row.source.toLowerCase().trim())) || (result.articles && result.articles.some((art: any) => art.source && row.source && (art.source.toLowerCase().includes(row.source.toLowerCase()) || row.source.toLowerCase().includes(art.source.toLowerCase())))) || (row.source && row.said) ? (() => {
+                                const resolved = row.link && row.link.trim() ? row.link : (() => {
+                                  const match = result.articles?.find((art: any) => art.source && row.source && art.source.toLowerCase().trim() === row.source.toLowerCase().trim());
+                                  if (match?.link) return match.link;
+                                  const fuzzyMatch = result.articles?.find((art: any) => art.source && row.source && (art.source.toLowerCase().includes(row.source.toLowerCase()) || row.source.toLowerCase().includes(art.source.toLowerCase())));
+                                  if (fuzzyMatch?.link) return fuzzyMatch.link;
+                                  const query = `${row.source || ''} ${row.said || ''}`.trim();
+                                  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                                })();
+                                return (
+                                  <a 
+                                    href={resolved} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ color: '#8b5cf6', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px', textDecoration: 'underline' }}
+                                  >
+                                    {row.source} <ExternalLink size={10} />
+                                  </a>
+                                );
+                              })() : (
                                 <span style={{ fontWeight: 600 }}>{row.source}</span>
                               )}
                             </div>
@@ -709,43 +720,65 @@ export default function MobileDossier({ result, onBack }: MobileDossierProps) {
                 </div>
                 {expandedSections.sources ? <ChevronDown size={18} color="#78716c" /> : <ChevronRight size={18} color="#78716c" />}
               </button>
-              {expandedSections.sources && (
-                <div style={{
-                  padding: '12px 12px 16px 12px',
-                  borderTop: '1px solid #f5f5f4',
-                  background: '#fafaf9',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr',
-                  gap: '8px'
-                }}>
-                  {result.articles.map((art: any, idx: number) => (
-                    <a 
-                      key={idx}
-                      href={art.link || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        background: '#fff',
-                        border: '1px solid #e7e5e4',
-                        borderRadius: '8px',
-                        padding: '10px 12px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        textDecoration: 'none',
-                        color: '#1a1a1a',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.01)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, paddingRight: '8px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#292524', textAlign: 'left', lineHeight: '1.3' }}>{art.title}</span>
-                        <span style={{ fontSize: '10px', color: '#78716c', fontWeight: 600, textTransform: 'uppercase', textAlign: 'left' }}>{art.source}</span>
-                      </div>
-                      <LinkIcon size={14} style={{ color: '#8b5cf6', flexShrink: 0 }} />
-                    </a>
-                  ))}
-                </div>
-              )}
+              {expandedSections.sources && (() => {
+                const displayedSources = showAllSources ? result.articles : result.articles.slice(0, 6);
+                return (
+                  <div style={{
+                    padding: '12px 12px 16px 12px',
+                    borderTop: '1px solid #f5f5f4',
+                    background: '#fafaf9',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr',
+                    gap: '8px'
+                  }}>
+                    {displayedSources.map((art: any, idx: number) => (
+                      <a 
+                        key={idx}
+                        href={art.link || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #e7e5e4',
+                          borderRadius: '8px',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          textDecoration: 'none',
+                          color: '#1a1a1a',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.01)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, paddingRight: '8px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#292524', textAlign: 'left', lineHeight: '1.3' }}>{art.title}</span>
+                          <span style={{ fontSize: '10px', color: '#78716c', fontWeight: 600, textTransform: 'uppercase', textAlign: 'left' }}>{art.source}</span>
+                        </div>
+                        <LinkIcon size={14} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+                      </a>
+                    ))}
+                    {result.articles.length > 6 && (
+                      <button
+                        onClick={() => setShowAllSources(!showAllSources)}
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #8b5cf6',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          textAlign: 'center',
+                          color: '#8b5cf6',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          marginTop: '4px'
+                        }}
+                      >
+                        {showAllSources ? 'View Less' : `View More (${result.articles.length - 6} more)`}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 

@@ -630,7 +630,7 @@ export default function NewspaperFeed() {
               {selectedArticle.left && selectedArticle.left.length > 0 && (
                 <>
                   <div style={{ fontFamily: 'var(--font-playfair), serif', fontWeight: 800, fontSize: '.88rem', textTransform: 'uppercase', letterSpacing: '.06em', color: '#B23A2E', margin: '2rem 0 .5rem', borderBottom: '1.5px solid rgba(178,58,46,.18)', display: 'inline-block', paddingBottom: '2px' }}>
-                    What the opposition-leaning frame says
+                    Left Side Argument
                   </div>
                   {selectedArticle.left.map((p, i) => (
                     <p key={`left-${i}`} style={{ marginBottom: '.75rem' }}>{p}</p>
@@ -641,7 +641,7 @@ export default function NewspaperFeed() {
               {selectedArticle.right && selectedArticle.right.length > 0 && (
                 <>
                   <div style={{ fontFamily: 'var(--font-playfair), serif', fontWeight: 800, fontSize: '.88rem', textTransform: 'uppercase', letterSpacing: '.06em', color: '#B23A2E', margin: '2rem 0 .5rem', borderBottom: '1.5px solid rgba(178,58,46,.18)', display: 'inline-block', paddingBottom: '2px' }}>
-                    What the government-leaning frame says
+                    Right Side Argument
                   </div>
                   {selectedArticle.right.map((p, i) => (
                     <p key={`right-${i}`} style={{ marginBottom: '.75rem' }}>{p}</p>

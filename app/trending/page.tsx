@@ -43,6 +43,7 @@ export default function TrendingPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [selectedReel, setSelectedReel] = useState<CacheItem | null>(null);
+  const [showAllSources, setShowAllSources] = useState(false);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [inputEmail, setInputEmail] = useState('');
@@ -898,13 +899,13 @@ export default function TrendingPage() {
 
         .reader-sources-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 1rem;
         }
 
         @media (max-width: 600px) {
           .reader-sources-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
           }
         }
 
@@ -1285,6 +1286,7 @@ export default function TrendingPage() {
                     onClick={(e) => {
                       e.preventDefault();
                       setSelectedReel(reel);
+                      setShowAllSources(false);
                     }}
                     className={`news-capsule ${selectedColorClass}`}
                   >
@@ -1430,7 +1432,7 @@ export default function TrendingPage() {
                       <div className="reader-perspectives">
                         {data?.left && (
                           <div className="reader-persp-card left">
-                            <span className="reader-persp-label left">What the opposition says</span>
+                            <span className="reader-persp-label left">Left Side Argument</span>
                             <p className="reader-persp-summary">{data.left.summary}</p>
                             {data.left.keyPoints && data.left.keyPoints.length > 0 && (
                               <>
@@ -1460,7 +1462,7 @@ export default function TrendingPage() {
                         )}
                         {data?.right && (
                           <div className="reader-persp-card right">
-                            <span className="reader-persp-label right">What the government says</span>
+                            <span className="reader-persp-label right">Right Side Argument</span>
                             <p className="reader-persp-summary">{data.right.summary}</p>
                             {data.right.keyPoints && data.right.keyPoints.length > 0 && (
                               <>
@@ -1509,37 +1511,54 @@ export default function TrendingPage() {
                       )
                     )}
 
-                    <ClaimsTable tableData={data?.table} />
+                    <ClaimsTable tableData={data?.table} articles={data?.articles} />
 
-                    {data?.articles && data.articles.length > 0 && (
-                      <div>
-                        <h3 className="reader-sources-title">Verified Sources</h3>
-                        <div className="reader-sources-grid">
-                          {data.articles.map((art: any, i: number) => (
-                            <a 
-                              key={i} 
-                              href={art.link || '#'} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="reader-source-item"
-                            >
-                              <span className="reader-source-title">{art.title}</span>
-                              <span className="reader-source-name">{art.source} ↗</span>
-                            </a>
-                          ))}
+                    {data?.articles && data.articles.length > 0 && (() => {
+                      const displayedSources = showAllSources ? data.articles : data.articles.slice(0, 6);
+                      return (
+                        <div>
+                          <h3 className="reader-sources-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Verified Sources</span>
+                            {data.articles.length > 6 && (
+                              <button
+                                onClick={() => setShowAllSources(!showAllSources)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--c-blue)',
+                                  fontWeight: 800,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                  textDecoration: 'underline',
+                                  padding: '0 0.5rem'
+                                }}
+                              >
+                                {showAllSources ? 'View Less' : `View More (${data.articles.length - 6} more)`}
+                              </button>
+                            )}
+                          </h3>
+                          <div className="reader-sources-grid">
+                            {displayedSources.map((art: any, i: number) => (
+                              <a 
+                                key={i} 
+                                href={art.link || '#'} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="reader-source-item"
+                              >
+                                <span className="reader-source-title">{art.title}</span>
+                                <span className="reader-source-name">{art.source} ↗</span>
+                              </a>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
 
+                  {/* Sidebar: compact embed only */}
                   <aside className="dossier-sidebar">
                     <InstagramEmbed url={embedUrl} compact />
-                    {isPolitical && data?.fight && (
-                      <div className="dossier-conflict-compact">
-                        <div className="dossier-conflict-compact-label">The Core Conflict</div>
-                        <div className="dossier-conflict-compact-text">"{data.fight}"</div>
-                      </div>
-                    )}
                   </aside>
                 </div>
               );
