@@ -29,23 +29,20 @@ type Article = {
 };
 
 /* ─── Data imports ─── */
-import indianPoliticsRaw from '@/data/indian-politics.json';
-import worldNewsRaw from '@/data/world-news.json';
+import topStoriesRaw from '@/data/top-stories.json';
 import financialNewsRaw from '@/data/financial-news.json';
 import sportsRaw from '@/data/sports.json';
 import entertainmentRaw from '@/data/entertainment.json';
 
-const indianPolitics = indianPoliticsRaw as Article[];
-const worldNews = worldNewsRaw as Article[];
+const topStories = topStoriesRaw as Article[];
 const financialNews = financialNewsRaw as Article[];
 const sports = sportsRaw as Article[];
 const entertainment = entertainmentRaw as Article[];
 
-type SectionKey = 'indian-politics' | 'world-news' | 'financial-news' | 'sports' | 'entertainment';
+type SectionKey = 'top-stories' | 'financial-news' | 'sports' | 'entertainment';
 
 const sectionMeta: Record<SectionKey, { label: string; masthead: string; data: Article[] }> = {
-  'indian-politics': { label: 'Indian Politics', masthead: 'INDIAN POLITICS', data: indianPolitics },
-  'world-news':      { label: 'World News',      masthead: 'WORLD NEWS',      data: worldNews },
+  'top-stories':     { label: 'Top 10 News of the Day', masthead: 'TOP 10 NEWS OF THE DAY', data: topStories },
   'financial-news':  { label: 'Financial News',  masthead: 'FINANCIAL NEWS',  data: financialNews },
   'sports':          { label: 'Sports',           masthead: 'SPORTS',          data: sports },
   'entertainment':   { label: 'Entertainment',    masthead: 'ENTERTAINMENT',   data: entertainment },
@@ -63,7 +60,7 @@ FlipPage.displayName = 'FlipPage';
 export default function NewspaperFeed() {
   const router = useRouter();
   const bookRef = useRef<any>(null);
-  const [activeSection, setActiveSection] = useState<SectionKey>('indian-politics');
+  const [activeSection, setActiveSection] = useState<SectionKey>('top-stories');
   const [mounted, setMounted] = useState(false);
   const [currentSpread, setCurrentSpread] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -337,7 +334,33 @@ export default function NewspaperFeed() {
         }
       `}</style>
 
-      {/* Section tabs *      {/* Book / Feed */}
+      {/* Section tabs */}
+      {mounted && (
+        <div className="np-tabs">
+          {Object.keys(sectionMeta).map((key) => {
+            const sec = key as SectionKey;
+            return (
+              <button
+                key={sec}
+                className={activeSection === sec ? 'on' : ''}
+                onClick={() => {
+                  setActiveSection(sec);
+                  try {
+                    bookRef.current?.pageFlip()?.turnToPage(0);
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  setCurrentSpread(0);
+                }}
+              >
+                {sectionMeta[sec].label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Book / Feed */}
       {mounted && articles.length > 0 && (
         isMobile ? (
           <div className="np-mobile-feed" style={{ width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '0 0.5rem' }}>

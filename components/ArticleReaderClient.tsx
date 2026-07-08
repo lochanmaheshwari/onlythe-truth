@@ -35,23 +35,20 @@ type Article = {
   rank: number; isLead: boolean;
 };
 
-import indianPoliticsRaw from '@/data/indian-politics.json';
-import worldNewsRaw from '@/data/world-news.json';
+import topStoriesRaw from '@/data/top-stories.json';
 import financialNewsRaw from '@/data/financial-news.json';
 import sportsRaw from '@/data/sports.json';
 import entertainmentRaw from '@/data/entertainment.json';
 
 const allData: Record<string, Article[]> = {
-  'indian-politics': indianPoliticsRaw as Article[],
-  'world-news': worldNewsRaw as Article[],
+  'top-stories': topStoriesRaw as Article[],
   'financial-news': financialNewsRaw as Article[],
   'sports': sportsRaw as Article[],
   'entertainment': entertainmentRaw as Article[],
 };
 
 const sectionLabels: Record<string, string> = {
-  'indian-politics': 'Indian Politics',
-  'world-news': 'World News',
+  'top-stories': 'Top 10 News of the Day',
   'financial-news': 'Financial News',
   'sports': 'Sports',
   'entertainment': 'Entertainment',

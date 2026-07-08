@@ -77,4 +77,4 @@ async function run(file) {
   console.log(`Finished processing ${file}`);
 }
 
-run("./data/indian-politics.json");
+run("./data/top-stories.json");
