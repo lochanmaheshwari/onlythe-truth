@@ -549,9 +549,15 @@ export default function HomePage() {
       // Modal will open automatically since result is set
 
     } catch (err: any) {
-      const apiHost = typeof window !== 'undefined' && !!(window as any).Capacitor ? 'http://192.168.0.131:3000' : '';
       console.error("Scan fetch error:", err);
-      setLoadingError(`Could not connect to backend at ${apiHost || 'localhost'}. Make sure your phone and laptop are on the same Wi-Fi network.`);
+      if (err instanceof SyntaxError) {
+        setLoadingError("Failed to parse server response. The API endpoint might be missing or returned an invalid response.");
+      } else if (err instanceof Error && err.message && err.message !== 'Failed to fetch' && !err.message.includes('fetch') && !err.message.includes('JSON')) {
+        setLoadingError(err.message);
+      } else {
+        const apiHost = typeof window !== 'undefined' && !!(window as any).Capacitor ? 'http://192.168.0.131:3000' : '';
+        setLoadingError(`Could not connect to backend at ${apiHost || 'localhost'}. Make sure the server is running.`);
+      }
     } finally {
       setIsSubmitting(false);
       setLoadingStep(0);
