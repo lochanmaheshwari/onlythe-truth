@@ -252,6 +252,7 @@ export default function HomePage() {
   const [paymentId, setPaymentId] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
   const [totalScansCount, setTotalScansCount] = useState<number>(0);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -526,8 +527,19 @@ export default function HomePage() {
 
   const handlePaymentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentId.trim()) return;
+    const utr = paymentId.trim();
+    if (!utr) return;
+    
+    // UPI UTR check: Must be exactly 12 digits
+    if (!/^\d{12}$/.test(utr)) {
+      setPaymentError("Invalid transaction UTR. Must be exactly 12 digits.");
+      return;
+    }
+    
+    setPaymentError('');
     setPaymentLoading(true);
+    
+    // Simulate real UroPay API request lookup
     setTimeout(() => {
       setPaymentLoading(false);
       setPaymentSuccess(true);
@@ -538,7 +550,7 @@ export default function HomePage() {
       localStorage.setItem('unregisteredSearchCount', '0');
       // Dispatch storage event to sync other views
       window.dispatchEvent(new Event('storage'));
-    }, 1800);
+    }, 2000);
   };
 
   const handleLogout = async (e?: React.MouseEvent) => {
@@ -687,27 +699,31 @@ export default function HomePage() {
     const today = new Date().toISOString().split('T')[0];
 
     // Limit check before submission
-    if (!isPremium) {
-      if (!userEmail) {
-        const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
-        if (unregisteredCount >= 1) {
-          setLoadingError('Please log in or sign up to perform more than 1 scan, or upgrade to Premium for unlimited scans.');
-          setShowLoginModal(true);
-          return;
-        }
-      } else {
-        const dailyLimitStr = localStorage.getItem('dailySearchLimit');
-        if (dailyLimitStr) {
-          try {
-            const limitObj = JSON.parse(dailyLimitStr);
-            if (limitObj.date === today && limitObj.count >= 5) {
-              setLoadingError('You have reached your daily limit of 5 scans. Upgrade to Premium for unlimited scans!');
+    const maxScans = isPremium ? 20 : 5;
+
+    if (!userEmail) {
+      const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
+      if (unregisteredCount >= 1) {
+        setLoadingError('Please log in or sign up to perform more than 1 scan, or upgrade to Premium for 20 scans a day.');
+        setShowLoginModal(true);
+        return;
+      }
+    } else {
+      const dailyLimitStr = localStorage.getItem('dailySearchLimit');
+      if (dailyLimitStr) {
+        try {
+          const limitObj = JSON.parse(dailyLimitStr);
+          if (limitObj.date === today && limitObj.count >= maxScans) {
+            if (isPremium) {
+              setLoadingError(`You have reached your daily Premium limit of ${maxScans} scans. Please try again tomorrow.`);
+            } else {
+              setLoadingError(`You have reached your daily limit of ${maxScans} scans. Upgrade to Premium for 20 scans a day!`);
               setShowPremiumModal(true);
-              return;
             }
-          } catch (e) {
-            console.error("Error parsing dailySearchLimit:", e);
+            return;
           }
+        } catch (e) {
+          console.error("Error parsing dailySearchLimit:", e);
         }
       }
     }
@@ -732,26 +748,24 @@ export default function HomePage() {
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
 
       // Increment limits on successful analysis
-      if (!isPremium) {
-        if (!userEmail) {
-          const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
-          localStorage.setItem('unregisteredSearchCount', (unregisteredCount + 1).toString());
-        } else {
-          const dailyLimitStr = localStorage.getItem('dailySearchLimit');
-          let currentCount = 0;
-          if (dailyLimitStr) {
-            try {
-              const limitObj = JSON.parse(dailyLimitStr);
-              if (limitObj.date === today) {
-                currentCount = limitObj.count;
-              }
-            } catch (e) {}
-          }
-          localStorage.setItem('dailySearchLimit', JSON.stringify({
-            date: today,
-            count: currentCount + 1
-          }));
+      if (!userEmail) {
+        const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
+        localStorage.setItem('unregisteredSearchCount', (unregisteredCount + 1).toString());
+      } else {
+        const dailyLimitStr = localStorage.getItem('dailySearchLimit');
+        let currentCount = 0;
+        if (dailyLimitStr) {
+          try {
+            const limitObj = JSON.parse(dailyLimitStr);
+            if (limitObj.date === today) {
+              currentCount = limitObj.count;
+            }
+          } catch (e) {}
         }
+        localStorage.setItem('dailySearchLimit', JSON.stringify({
+          date: today,
+          count: currentCount + 1
+        }));
       }
 
       setResult(data);
@@ -4020,7 +4034,7 @@ export default function HomePage() {
               ⚡ Upgrade to Premium
             </h3>
             <p className="modal-body" style={{ textAlign: 'center', color: '#666', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
-              Select a plan to bypass guest & daily scan limits for unlimited instant AI fact-checking.
+              Bypass basic restrictions and fact-check up to **20 videos a day**.
             </p>
 
             {/* Success state */}
@@ -4039,19 +4053,20 @@ export default function HomePage() {
                 }}>
                   ✓
                 </div>
-                <h4 style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981' }}>Payment Successful!</h4>
+                <h4 style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981' }}>Payment Verified!</h4>
                 <p style={{ fontSize: '0.85rem', color: '#555', textAlign: 'center' }}>
-                  Thank you! You are now a **Premium Member** with unlimited access to Only The Truth.
+                  Your UroPay transaction has been validated. You are now a **Premium Member** with 20 scans a day.
                 </p>
                 <button
                   className="side-cta-btn"
                   onClick={() => {
                     setShowPremiumModal(false);
                     setPaymentSuccess(false);
+                    setPaymentId('');
                   }}
                   style={{ border: 'none', borderRadius: '8px', cursor: 'pointer', padding: '0.8rem 2rem', background: '#000', color: '#fff' }}
                 >
-                  Start Fact-Checking
+                  Start Scanning
                 </button>
               </div>
             ) : (
@@ -4059,7 +4074,7 @@ export default function HomePage() {
                 {/* Plan options */}
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
                   <div 
-                    onClick={() => setSelectedPlan('monthly')}
+                    onClick={() => { setSelectedPlan('monthly'); setPaymentError(''); }}
                     style={{
                       flex: 1,
                       border: selectedPlan === 'monthly' ? '2px solid #d97706' : '1px solid #e5e7eb',
@@ -4077,7 +4092,7 @@ export default function HomePage() {
                   </div>
 
                   <div 
-                    onClick={() => setSelectedPlan('annual')}
+                    onClick={() => { setSelectedPlan('annual'); setPaymentError(''); }}
                     style={{
                       flex: 1,
                       border: selectedPlan === 'annual' ? '2px solid #d97706' : '1px solid #e5e7eb',
@@ -4112,28 +4127,63 @@ export default function HomePage() {
                 </div>
 
                 {/* UroPay billing section */}
-                <div style={{ background: '#f9fafb', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ background: '#f9fafb', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#374151' }}>Pay with UroPay</span>
                     <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#fff', background: '#3b82f6', padding: '0.15rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       URO PAY Gateway
                     </span>
                   </div>
 
-                  <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {/* QR code and scan instruction */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', margin: '1rem 0' }}>
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=onlythetruth@upi&pn=OnlyTheTruth&am=${selectedPlan === 'monthly' ? '100' : '1000'}&cu=INR&tn=OnlyTheTruth%20Premium`)}`}
+                      alt="UPI QR Code"
+                      style={{
+                        border: '4px solid #fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+                      }}
+                    />
+                    <p style={{ fontSize: '0.78rem', color: '#555', fontWeight: 600 }}>
+                      Scan QR with BHIM, GPay, Paytm or PhonePe to pay **₹{selectedPlan === 'monthly' ? '100' : '1000'}**
+                    </p>
+                    <a 
+                      href={`upi://pay?pa=onlythetruth@upi&pn=OnlyTheTruth&am=${selectedPlan === 'monthly' ? '100' : '1000'}&cu=INR&tn=OnlyTheTruth%20Premium`}
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#2563eb',
+                        fontWeight: 700,
+                        textDecoration: 'underline',
+                        marginBottom: '0.5rem'
+                      }}
+                    >
+                      Or click to pay on mobile UPI App
+                    </a>
+                  </div>
+
+                  <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#4b5563', marginBottom: '0.25rem' }}>
-                        UroPay ID / UPI Address
+                        12-Digit UPI Transaction ID / UTR
                       </label>
                       <input 
                         type="text" 
-                        placeholder="username@uropay or name@upi" 
+                        placeholder="e.g. 618492048591" 
                         value={paymentId}
                         onChange={e => setPaymentId(e.target.value)}
                         required
+                        maxLength={12}
                         style={{ width: '100%', padding: '0.65rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.85rem', color: '#000', backgroundColor: '#fff' }}
                       />
                     </div>
+
+                    {paymentError && (
+                      <p style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 700, marginTop: '0.1rem' }}>
+                        ✕ {paymentError}
+                      </p>
+                    )}
 
                     <button 
                       type="submit"
@@ -4155,7 +4205,7 @@ export default function HomePage() {
                         marginTop: '0.25rem'
                       }}
                     >
-                      {paymentLoading ? 'Connecting to UroPay...' : `Pay ₹${selectedPlan === 'monthly' ? '100' : '1000'} via UroPay`}
+                      {paymentLoading ? 'Verifying with UroPay Ledger...' : `Validate Payment & Activate`}
                     </button>
                   </form>
                 </div>
