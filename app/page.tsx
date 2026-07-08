@@ -656,6 +656,32 @@ export default function HomePage() {
   const runAnalysis = async (rawUrl: string) => {
     const url = normalizeUrl(rawUrl);
     if (!url) return;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // Limit check before submission
+    if (!userEmail) {
+      const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
+      if (unregisteredCount >= 1) {
+        setLoadingError('Please log in or sign up to perform more than 1 scan.');
+        setShowLoginModal(true);
+        return;
+      }
+    } else {
+      const dailyLimitStr = localStorage.getItem('dailySearchLimit');
+      if (dailyLimitStr) {
+        try {
+          const limitObj = JSON.parse(dailyLimitStr);
+          if (limitObj.date === today && limitObj.count >= 5) {
+            setLoadingError('You have reached your daily limit of 5 scans. Please try again tomorrow.');
+            return;
+          }
+        } catch (e) {
+          console.error("Error parsing dailySearchLimit:", e);
+        }
+      }
+    }
+
     setIsSubmitting(true);
     setLoadingError('');
     setResult(null);
@@ -674,6 +700,27 @@ export default function HomePage() {
       setLoadingStep(3);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
+
+      // Increment limits on successful analysis
+      if (!userEmail) {
+        const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
+        localStorage.setItem('unregisteredSearchCount', (unregisteredCount + 1).toString());
+      } else {
+        const dailyLimitStr = localStorage.getItem('dailySearchLimit');
+        let currentCount = 0;
+        if (dailyLimitStr) {
+          try {
+            const limitObj = JSON.parse(dailyLimitStr);
+            if (limitObj.date === today) {
+              currentCount = limitObj.count;
+            }
+          } catch (e) {}
+        }
+        localStorage.setItem('dailySearchLimit', JSON.stringify({
+          date: today,
+          count: currentCount + 1
+        }));
+      }
 
       setResult(data);
 
