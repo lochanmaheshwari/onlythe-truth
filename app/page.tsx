@@ -2690,21 +2690,6 @@ export default function HomePage() {
               </>
             )}
             
-            <button className="side-cta-btn" onClick={() => setShowAboutModal(true)}>
-              {t.aboutUsBtn}
-            </button>
-            
-            {userEmail && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', padding: '0.4rem', background: 'rgba(0,0,0,0.05)', borderRadius: '12px', width: '100%' }}>
-                <span className="user-email-truncate" title={userEmail} style={{ fontSize: '0.62rem', fontWeight: 700, color: '#333', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {userEmail}
-                </span>
-                <button onClick={handleLogout} style={{ border: 'none', background: 'none', color: '#B23A2E', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}>
-                  {t.logoutBtn}
-                </button>
-              </div>
-            )}
-            
             <button 
               className={`side-cta-btn ${isPremium ? 'premium-active-btn' : ''}`}
               onClick={() => setShowPremiumModal(true)}
@@ -2730,6 +2715,21 @@ export default function HomePage() {
             >
               <span>{isPremium ? '★ Premium Member' : '⚡ Upgrade to Premium'}</span>
             </button>
+
+            <button className="side-cta-btn" onClick={() => setShowAboutModal(true)}>
+              {t.aboutUsBtn}
+            </button>
+            
+            {userEmail && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', padding: '0.4rem', background: 'rgba(0,0,0,0.05)', borderRadius: '12px', width: '100%' }}>
+                <span className="user-email-truncate" title={userEmail} style={{ fontSize: '0.62rem', fontWeight: 700, color: '#333', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {userEmail}
+                </span>
+                <button onClick={handleLogout} style={{ border: 'none', background: 'none', color: '#B23A2E', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}>
+                  {t.logoutBtn}
+                </button>
+              </div>
+            )}
 
             <div className="side-lang-btn-wrap">
               <button 
