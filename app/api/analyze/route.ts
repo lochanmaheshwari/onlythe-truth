@@ -7,7 +7,7 @@ import path from 'path';
 
 
 function getInstagramMediaId(url: string): string | null {
-  const match = url.match(/instagram\.com\/(?:reel|reels|p|share\/r|share\/p)\/([a-zA-Z0-9_-]+)/i);
+  const match = url.match(/instagram\.com\/(?:reel|reels|p|tv|share\/r|share\/p)\/([a-zA-Z0-9_-]+)/i);
   return match?.[1] || null;
 }
 
