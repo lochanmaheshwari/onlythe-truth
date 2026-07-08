@@ -114,10 +114,128 @@ function generateInstagramComments(tableData?: any[]) {
   ];
 }
 
+const WEIRD_FACTS = [
+  "Bananas are berries, but strawberries aren't.",
+  "Wombat poop is cube-shaped, which stops it from rolling away.",
+  "Honey never spoils; you can eat 3,000-year-old Egyptian tomb honey.",
+  "Sea otters hold hands when they sleep so they don't drift apart.",
+  "The world's quietest room is so quiet you can hear your own heartbeat and bones grinding.",
+  "A day on Venus is longer than a year on Venus.",
+  "Cows have best friends and get stressed when they are separated.",
+  "Sloths can hold their breath longer than dolphins can.",
+  "An octopus has three hearts, nine brains, and blue blood.",
+  "The first person convicted of speeding was going 8 mph in a 2 mph zone.",
+  "Water makes a different sound when it is hot compared to when it is cold.",
+  "The heaviest organism on Earth is Pando, a single forest of aspen trees sharing one root system.",
+  "Human teeth are just as strong as shark teeth.",
+  "Pineapples take nearly two years to grow from a single seed.",
+  "Flamingos are pink only because of the shrimp and algae they eat.",
+  "Before the eraser was invented, stale bread crumbs were used to wipe pencil marks.",
+  "The tongue of a blue whale is heavier than an entire adult elephant.",
+  "Butterflies taste food using receptors on their feet.",
+  "Human bone is about five times stronger than steel of the same weight.",
+  "A bolt of lightning is five times hotter than the surface of the sun.",
+  "Rain contains vitamin B12.",
+  "The Eiffel Tower can grow up to 6 inches taller during hot summers.",
+  "Sea cucumbers breathe through their anus.",
+  "A single strand of spaghetti is called a spaghetto.",
+  "Sarcastic comments can boost creativity and critical thinking.",
+  "Cleopatra lived closer in time to the Moon landing than to the construction of the Great Pyramid.",
+  "There are more trees on Earth than stars in the Milky Way.",
+  "Sharks existed before trees and Saturn's rings.",
+  "A snail can sleep for up to three years.",
+  "The wood frog can hold its pee for up to eight months.",
+  "The heart of a shrimp is located in its head.",
+  "Polar bear skin is black, and their fur is actually hollow and clear.",
+  "There are more possible iterations of a game of chess than atoms in the observable universe.",
+  "The unicorn is the national animal of Scotland.",
+  "It is physically impossible for pigs to look up into the sky.",
+  "Kangaroos can't walk backwards.",
+  "A group of crows is called a murder.",
+  "The average cloud weighs about 1.1 million pounds (500,000 kg).",
+  "Avocados are berries, not vegetables.",
+  "Sloths can take up to a month to digest a single leaf.",
+  "Apples float in water because they are 25% air.",
+  "A cloud of starlings is called a murmuration.",
+  "Peanuts are not nuts; they grow underground and are legumes.",
+  "The dry valleys in Antarctica haven't seen rain or snow in 2 million years.",
+  "Wearing headphones for just an hour increases bacteria in your ear by 700 times.",
+  "The dot over a lowercase 'i' or 'j' is called a tittle.",
+  "Lobsters taste with their legs and chew with their stomachs.",
+  "A flock of flamingos is called a flamboyance.",
+  "Glaciers and ice sheets hold about 69 percent of the world's freshwater.",
+  "Jellyfish and lobsters are biologically immortal; they don't die of old age.",
+  "Cats have 32 muscles in each ear, allowing them to rotate them 180 degrees.",
+  "The inventor of the Frisbee was cremated and turned into a Frisbee.",
+  "Farting helps reduce high blood pressure and is healthy.",
+  "A blue whale's heartbeat can be heard from over two miles away.",
+  "Hippopotamus sweat is red and acts as a natural sunscreen.",
+  "Venus is the only planet in our solar system that rotates clockwise.",
+  "In Switzerland, it is illegal to own just one guinea pig because they get lonely.",
+  "The first alarm clock could only ring at 4:00 AM.",
+  "Cashew nuts grow on the bottom of yellow apples.",
+  "The total weight of all ants on Earth is roughly equal to the total weight of all humans.",
+  "Your nose can remember 50,000 different scents.",
+  "Koalas have fingerprints that are virtually identical to human fingerprints.",
+  "Earth is the only planet in our solar system not named after a mythological god.",
+  "An adult human is made up of about 7 octillion atoms.",
+  "You lose about 50 to 100 strands of hair every single day.",
+  "Worms have five hearts.",
+  "The cigarette lighter was invented before the match.",
+  "Chewing gum while peeling onions stops you from crying.",
+  "Reindeer eyes turn blue in winter to help them see in low light.",
+  "Squirrels accidentally plant thousands of new trees each year by forgetting where they hid their nuts.",
+  "Honeybees can recognize human faces.",
+  "Male ostriches can roar like lions.",
+  "Sea otters have a special pocket in their skin to keep their favorite rock.",
+  "Cats sleep for 70% of their lives.",
+  "A single teaspoon of a neutron star would weigh about 6 billion tons.",
+  "The world's oldest toy is a stick.",
+  "The first cell phone call was made in 1973 by a Motorola employee calling his rival.",
+  "Owls don't have eyeballs; they have eye tubes that are fixed in place.",
+  "Hummingbirds are the only birds that can fly backwards.",
+  "An ostrich's eye is bigger than its entire brain.",
+  "Crocodiles cannot stick their tongue out because it is attached to the roof of their mouth.",
+  "Tigers have striped skin, not just striped fur.",
+  "A chameleon's tongue is twice the length of its body.",
+  "Elephants are the only mammals that cannot jump.",
+  "The heart of a blue whale is the size of a small car.",
+  "A standard pencil contains enough graphite to draw a line 35 miles long.",
+  "Sloths poop only once a week, and it is a major event.",
+  "An individual raindrop falls at an average speed of 7 miles per hour.",
+  "Scorpions glow a vibrant blue-green color under ultraviolet light.",
+  "Humans share 50% of their DNA with bananas.",
+  "The tongue is the only muscle in the human body that is attached at only one end.",
+  "A standard deck of cards has more possible shuffles than there are seconds since the Big Bang.",
+  "Sound travels about four times faster in water than it does in air.",
+  "Termites eat wood twice as fast when listening to rock music.",
+  "Some turtles can breathe through their butts.",
+  "The shortest war in history lasted only 38 minutes between Britain and Zanzibar.",
+  "Nutmeg is a hallucinogen if consumed in large quantities.",
+  "Ketchup was sold in the 1830s as a medicine for indigestion.",
+  "The average human walks the equivalent of three times around the world in their lifetime.",
+  "Panthers are not a separate species; they are just leopards or jaguars with black fur."
+];
+
 export default function HomePage() {
   const [instagramUrl, setInstagramUrl] = useState('');
   const [scannedUrl, setScannedUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentFactIdx, setCurrentFactIdx] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSubmitting) {
+      setCurrentFactIdx(Math.floor(Math.random() * 100));
+      interval = setInterval(() => {
+        setCurrentFactIdx((prev) => (prev + 1) % 100);
+      }, 3500);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isSubmitting]);
+
   const [loadingStep, setLoadingStep] = useState(0);
   const [loadingError, setLoadingError] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -1271,6 +1389,11 @@ export default function HomePage() {
         @keyframes marquee {
           0% { transform: translate3d(0, 0, 0); }
           100% { transform: translate3d(-50%, 0, 0); }
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         /* ─── VERIFY FORM IN ORANGE CARD ─── */
@@ -2860,9 +2983,67 @@ export default function HomePage() {
                 </p>
 
                 {isSubmitting && (
-                  <p style={{ fontSize: '0.78rem', color: '#fff', opacity: 0.9, marginTop: '0.5rem', fontWeight: 600 }}>
-                    {loadingMessages[loadingStep] || 'Processing...'}
-                  </p>
+                  <div style={{
+                    marginTop: '1.5rem',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    textAlign: 'center',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                    backdropFilter: 'blur(8px)',
+                    maxWidth: '500px',
+                    width: '100%',
+                    marginRight: 'auto',
+                    marginLeft: 'auto'
+                  }}>
+                    {/* Spinning loader */}
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      border: '3px solid rgba(255, 255, 255, 0.2)',
+                      borderTop: '3px solid #fff',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      margin: '0 auto 1.25rem'
+                    }} />
+                    
+                    <h5 style={{
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.12em',
+                      marginBottom: '0.5rem'
+                    }}>
+                      While We Fact-Check... Did You Know?
+                    </h5>
+                    
+                    <p style={{
+                      color: '#fff',
+                      fontSize: '0.98rem',
+                      lineHeight: '1.45',
+                      fontWeight: 500,
+                      fontStyle: 'italic',
+                      marginBottom: '0.75rem',
+                      minHeight: '65px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 0.5rem'
+                    }}>
+                      "{WEIRD_FACTS[currentFactIdx]}"
+                    </p>
+                    
+                    <div style={{
+                      color: 'rgba(255, 255, 255, 0.4)',
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em'
+                    }}>
+                      FACT {currentFactIdx + 1} OF 100
+                    </div>
+                  </div>
                 )}
                 {loadingError && (
                   <p style={{ fontSize: '0.78rem', color: '#f87171', marginTop: '0.5rem', fontWeight: 600 }}>
