@@ -6,6 +6,11 @@ import fs from 'fs/promises';
 import path from 'path';
 
 
+function getInstagramMediaId(url: string): string | null {
+  const match = url.match(/instagram\.com\/(?:reel|reels|p|share\/r|share\/p)\/([a-zA-Z0-9_-]+)/i);
+  return match?.[1] || null;
+}
+
 function normalizeUrl(u: string): string {
   if (!u) return '';
   let trimmed = u.trim();
@@ -32,10 +37,10 @@ function normalizeUrl(u: string): string {
     }
 
     if (hostname.endsWith('instagram.com')) {
-      const match = pathName.match(/^\/(reel|reels|p)\/([a-zA-Z0-9_-]+)/i);
-      if (match?.[2]) {
-        const kind = match[1].toLowerCase() === 'p' ? 'p' : 'reel';
-        return `https://www.instagram.com/${kind}/${match[2]}/`;
+      const mediaId = getInstagramMediaId(trimmed);
+      if (mediaId) {
+        const isPost = /\/p\//i.test(trimmed) || /\/share\/p\//i.test(trimmed);
+        return `https://www.instagram.com/${isPost ? 'p' : 'reel'}/${mediaId}/`;
       }
     }
 
@@ -46,7 +51,7 @@ function normalizeUrl(u: string): string {
     // Fall through to a conservative cleanup.
   }
 
-  return trimmed.split('?')[0].replace(/\/+$/, '');
+  return trimmed.split('?')[0].split('#')[0].replace(/\/+$/, '');
 }
 
 function getUnsupportedReason(url: string): string | null {
@@ -63,16 +68,11 @@ function getUnsupportedReason(url: string): string | null {
     return 'That YouTube link is missing a video id.';
   }
 
-  if (isInstagram && !/instagram\.com\/(?:reel|p)\/[a-zA-Z0-9_-]+\/?$/i.test(url)) {
+  if (isInstagram && !getInstagramMediaId(url)) {
     return 'That Instagram link is missing a reel or post id.';
   }
 
   return null;
-}
-
-function getInstagramMediaId(url: string): string | null {
-  const match = url.match(/instagram\.com\/(?:reel|reels|p)\/([a-zA-Z0-9_-]+)/i);
-  return match?.[1] || null;
 }
 
 function getInstagramMediaIdFromItem(item: Record<string, unknown> | null): string | null {
