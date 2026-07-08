@@ -443,14 +443,67 @@ export default function HomePage() {
   }, [reels, searchTerm, sortBy, selectedCategory]);
 
   useEffect(() => {
+    // 1. Load initial cached values to keep UI responsive
     setUserEmail(localStorage.getItem('userEmail'));
     setIsPremium(localStorage.getItem('isPremium') === 'true');
+
+    // 2. Fetch fresh session from Supabase to sync status
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const email = session.user.email || '';
+        localStorage.setItem('userEmail', email);
+        setUserEmail(email);
+
+        // Retrieve active subscription status from profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_premium')
+          .eq('id', session.user.id)
+          .single();
+
+        const isPrem = !!profile?.is_premium;
+        localStorage.setItem('isPremium', String(isPrem));
+        setIsPremium(isPrem);
+      }
+    });
+
+    // 3. Listen to authentication state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const email = session.user.email || '';
+        localStorage.setItem('userEmail', email);
+        setUserEmail(email);
+
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_premium')
+          .eq('id', session.user.id)
+          .single();
+
+        const isPrem = !!profile?.is_premium;
+        localStorage.setItem('isPremium', String(isPrem));
+        setIsPremium(isPrem);
+      } else {
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('isPremium');
+        setUserEmail(null);
+        setIsPremium(false);
+      }
+      window.dispatchEvent(new Event('storage'));
+    });
+
+    // 4. Synchronize across browser tabs
     const handleStorageChange = () => {
       setUserEmail(localStorage.getItem('userEmail'));
       setIsPremium(localStorage.getItem('isPremium') === 'true');
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
 
@@ -488,6 +541,18 @@ export default function HomePage() {
         });
         if (error) throw error;
         
+        if (data?.user) {
+          // Manually upsert profile to public.profiles table in case trigger isn't ready
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              email: data.user.email,
+              is_premium: false,
+              updated_at: new Date().toISOString()
+            });
+        }
+        
         setAuthSuccess("Sign up successful! A confirmation link has been sent to your email. Please check your inbox and verify your email to log in.");
         setInputEmail('');
         setPassword('');
@@ -498,9 +563,30 @@ export default function HomePage() {
         });
         if (error) throw error;
         if (data?.user) {
+          // Manually ensure profile row exists in public.profiles
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              email: data.user.email,
+              updated_at: new Date().toISOString()
+            });
+
           const email = data.user.email || inputEmail.trim();
           localStorage.setItem('userEmail', email);
           setUserEmail(email);
+
+          // Retrieve active subscription status from profiles
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_premium')
+            .eq('id', data.user.id)
+            .single();
+
+          const isPrem = !!profile?.is_premium;
+          localStorage.setItem('isPremium', String(isPrem));
+          setIsPremium(isPrem);
+
           setShowLoginModal(false);
           setInputEmail('');
           setPassword('');
@@ -530,7 +616,27 @@ export default function HomePage() {
     setPaymentLoading(true);
     
     // Simulate real UroPay API request lookup
-    setTimeout(() => {
+    setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Sync premium state to Supabase profiles table
+          const { error } = await supabase
+            .from('profiles')
+            .upsert({
+              id: session.user.id,
+              email: session.user.email,
+              is_premium: true,
+              updated_at: new Date().toISOString()
+            });
+          if (error) {
+            console.error("Failed to update database profile status to premium:", error.message);
+          }
+        }
+      } catch (err) {
+        console.error("Auth session fetch error during payment submit:", err);
+      }
+
       setPaymentLoading(false);
       setPaymentSuccess(true);
       // Save premium status to local storage
