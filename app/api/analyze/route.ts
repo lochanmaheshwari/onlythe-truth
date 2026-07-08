@@ -200,18 +200,18 @@ function parseModelJson(raw: string, label: string): any {
   }
 }
 
-const EXTRACT_PROMPT = `Read this Instagram reel transcript (Hindi/Hinglish, names may be phonetically garbled — correct them to real known names). Identify the PRIMARY, MOST RECENT event the reel is ACTUALLY about — not older examples or comparisons mentioned in passing. If the reel discusses a current incident but also references past similar events, the TOPIC must be the CURRENT incident, not the past ones.
+const EXTRACT_PROMPT = `Read this Instagram reel transcript (Hindi/Hinglish, names may be phonetically garbled - correct them to real known names). Identify the PRIMARY, MOST RECENT event the reel is ACTUALLY about - not older examples or comparisons mentioned in passing. If the reel discusses a current incident but also references past similar events, the TOPIC must be the CURRENT incident, not the past ones.
 
 Extract:
 1. topic: a specific search phrase for the MAIN CURRENT event, using corrected real names/places. Example: if the reel is mainly about a new Seychelles award but mentions an old Kotler award in passing, topic = 'Modi Seychelles Guardian Blue Horizon award spelling error' NOT the Kotler one.
 2. entities: real corrected names of the people/places/orgs central to the MAIN event.
-3. claims: the 5 most CONSEQUENTIAL claims the reel makes about the MAIN event — allegations, accusations, specific factual assertions. Each: {"quote": "exact words", "search": "specific English query with corrected names for THIS claim"}.
+3. claims: the 5 most CONSEQUENTIAL claims the reel makes about the MAIN event - allegations, accusations, specific factual assertions. Each: {"quote": "exact words", "search": "specific English query with corrected names for THIS claim"}.
 4. region: "india" if the MAIN event centers on India, Indian people/places/orgs, or Indian politics. Otherwise "world".
 5. category: Classify the MAIN event into exactly one of: "indian_politics" (Indian government, elections, political figures/parties, public policies), "us_politics" (US government, elections, Trump, Biden, US political figures), "crimes_against_women" (crimes, physical assault, harassment, or safety issues targeting women/girls), "world_news" (strictly major geopolitical affairs, war zones like Russia/Ukraine or Middle East, and international diplomacy outside India/US. Do NOT use for general stories or local issues), or "others" (general human interest stories like charity/fundraising, entertainment/celebrity gossip, sports, science/tech, non-political local events, viral social media trends).
 
 Respond ONLY as valid JSON: {"topic":"...","region":"india"|"world","category":"indian_politics"|"us_politics"|"world_news"|"crimes_against_women"|"others","entities":[...],"claims":[{"quote":"...","search":"..."}]}. Focus on the CURRENT main event. Transcript: `;
 
-const ANALYSIS_PROMPT = `You are the sharpest investigative media analyst. Reason ONLY from the articles below. Never state who governs/is in power unless an article says so. Never reverse the speaker's claim: if the reel says profitable, write profitable, not loss-making — contradictions go in 'truth'.
+const ANALYSIS_PROMPT = `You are the sharpest investigative media analyst. Reason ONLY from the articles below. Never state who governs/is in power unless an article says so. Never reverse the speaker's claim: if the reel says profitable, write profitable, not loss-making - contradictions go in 'truth'.
 
 WRITE WITH MAXIMUM DEPTH. Every section must be long, detailed, and packed with specific numbers, dates, names, currency figures (₹, $, etc.), percentages, and direct quotes pulled from the articles. Never write a generic sentence. Every sentence must carry a hard fact. Write like an expert who read every article and remembers every number.
 
@@ -221,7 +221,7 @@ DETERMINE THE TOPIC CATEGORY AND POLARIZATION:
    - For "fight", identify the core narrative clash between the political, ideological, or religious factions.
 2. If the topic is strictly non-polarized, non-political, and objective (restricted to: sports scores, general movie/art reviews, pop culture celebrity gossip, tech/gadget releases, basic science, and consumer tips) where there is absolutely no ideological framing or clash:
    - You MUST set the "left" key to null and the "right" key to null.
-   - For "fight", write a clear 5-6 sentence overview of what happened — who, what, when, where — with nuance and context. No partisan framing, no "clash" language. Explain the event as a journalist would to someone catching up.
+   - For "fight", write a clear 5-6 sentence overview of what happened - who, what, when, where - with nuance and context. No partisan framing, no "clash" language. Explain the event as a journalist would to someone catching up.
    - For "reality", write 8-10 sentences going deep: full timeline, background context, key people involved, what led to this, what happened next, and any important nuances reporters have noted. This is explanatory journalism, NOT exposé or "brutal truth" framing. No left/right angles. Pack in specific dates, names, numbers, and quotes from articles.
 
 Return JSON, keys in THIS ORDER:
@@ -237,15 +237,16 @@ Return JSON, keys in THIS ORDER:
   - keyPoints: array of 3 specific facts, numbers, names, or quotes they cite.
   - strongestPoint: 1-2 detailed sentences explaining their strongest point.
   - blindSpot: 1-2 detailed sentences explaining their major blind spot.
-- reality: if polarized/political — the brutal reality in FULL depth, 7-8 sentences exposing the money, power, incentive, who profits, who pays, with exact figures and names. If non-political — a deep, nuanced explainer (8-10 sentences) covering timeline, context, key players, and what actually happened, with no partisan framing.
+- reality: if polarized/political - the brutal reality in FULL depth, 7-8 sentences exposing the money, power, incentive, who profits, who pays, with exact figures and names. If non-political - a deep, nuanced explainer (8-10 sentences) covering timeline, context, key players, and what actually happened, with no partisan framing.
 - table: array of the 4-6 MOST consequential claims. MUST have at least 4 rows. Each: {"said":"reel's actual claim","truth":"...","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"outlet or 'General knowledge'","link":"url or empty"}.
   For the "verdict", evaluate the core factual or numerical assertions strictly. If the primary price, quantity, or fact quoted in the claim is accurate, you MUST mark the verdict as TRUE. Do not mark a claim as MISLEADING or FALSE based on peripheral details, nitpicking minor percentage variations, or debating subjective interpretations if the central facts are correct.
   For the "truth" field, follow this priority:
   1. If the articles address the claim, lead with the hard number/fact from the articles and cite the outlet.
   2. If the articles do NOT address the claim but it is a well-established, widely-known fact (e.g. historical prices, well-documented events, basic public facts), state it from general knowledge and BEGIN that truth with "Not in the provided coverage, but as a matter of record: ..." then give the fact. Set source to "General knowledge" and verdict based on that knowledge.
-  3. ONLY if the claim is genuinely uncheckable — a specific recent allegation, a private detail, or something you cannot verify from articles OR general knowledge — write "The provided articles do not cover this, and it cannot be reliably confirmed." and mark UNVERIFIED.
+  3. ONLY if the claim is genuinely uncheckable - a specific recent allegation, a private detail, or something you cannot verify from articles OR general knowledge - write "The provided articles do not cover this, and it cannot be reliably confirmed." and mark UNVERIFIED.
   Never write a bare "no source in the coverage" with nothing else. Never use "Transcript", "Reel", "Instagram", "Video", or the speaker of the reel as the "source" or proof. The transcript contains the claims we are checking, so it cannot be used to verify itself.
 
+Do NOT use em-dashes (—) anywhere in your output. Always use standard hyphens (-) or colons (:) instead.
 Ban filler: 'would likely','complex issue','various factors','multifaceted','raise concerns','gloss over','it is important'. Never cite Wikipedia/Reddit/Instagram/YouTube/Facebook. Every value plain text except table. Respond ONLY valid JSON, no markdown.`;
 
 const INDIA_DOMAINS = ["thewire.in", "scroll.in", "ndtv.com", "thequint.com", "newslaundry.com", "altnews.in", "thenewsminute.com", "livelaw.in", "frontline.thehindu.com", "caravanmagazine.in", "nationalheraldindia.com", "telegraphindia.com", "article-14.com", "thehindu.com", "deccanherald.com", "theprint.in", "indianexpress.com", "hindustantimes.com", "livemint.com", "business-standard.com", "economictimes.indiatimes.com", "outlookindia.com", "bbc.com", "reuters.com", "aljazeera.com", "opindia.com", "swarajyamag.com", "republicworld.com", "timesnownews.com", "zeenews.india.com", "aajtak.in", "news18.com", "firstpost.com", "organiser.org", "dnaindia.com", "tfipost.com", "abplive.com", "indiatv.in", "timesofindia.indiatimes.com", "oneindia.com", "jagran.com", "amarujala.com", "bhaskar.com", "navbharattimes.indiatimes.com", "indiatoday.in", "ndtvprofit.com", "moneycontrol.com", "theweek.in", "tribuneindia.com", "newindianexpress.com", "deccanchronicle.com", "freepressjournal.in", "mid-day.com", "siasat.com", "nagalandpost.com", "telanganatoday.com", "sakshi.com", "punjabkesari.in", "lokmat.com", "eenadu.net", "dinamalar.com"];

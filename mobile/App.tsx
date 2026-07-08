@@ -43,7 +43,7 @@ const menuItems: MenuItem[] = [
 const heroText = {
   title: 'Making humans critical thinkers again.',
   subtitle:
-    'Scan any video from Instagram, YouTube or TikTok — we fact-check every claim across hundreds of sources and give you only the truth.',
+    'Scan any video from Instagram, YouTube or TikTok - we fact-check every claim across hundreds of sources and give you only the truth.',
 };
 
 const websiteApiBaseUrl =

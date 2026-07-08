@@ -188,6 +188,8 @@ You MUST write 3 sections in markdown:
 2. RIGHT_VIEWPOINT: Summarize the arguments, defenses, and focus of right-leaning / pro-government-leaning outlets. Use formal news analysis tone. Mention the sources that reported it.
 3. CENTER_SUMMARY: Write a balanced, factual overview of what actually happened, detailing the core dispute or facts.
 
+Do NOT use em-dashes (—) in any of the summaries or title. Always use standard hyphens (-) or colons (:) or commas instead.
+
 Also compute a BIAS_SCORE from -10 (extreme left bias overall on this topic in media) to +10 (extreme right bias overall in media), where 0 is balanced or center.
 
 Format the output strictly as a JSON object:

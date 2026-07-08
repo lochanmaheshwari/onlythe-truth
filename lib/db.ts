@@ -44,7 +44,7 @@ const SEED_ARTICLES: Article[] = [
       { name: "Swarajya", url: "https://swarajyamag.com", headline: "Aggregator promises to map news bias, but who rates the raters?" },
       { name: "Firstpost", url: "https://firstpost.com", headline: "Decoding bias: A new digital ledger tracks left-leaning and right-leaning news" }
     ],
-    centerSummary: "Only the Truth launched as an open, crowd-sourced database analyzing media bias in India. The platform maps articles from 60 prominent Indian news outlets—divided into 30 left-leaning/opposition-leaning and 30 right-leaning/pro-government-leaning sources. By matching search queries and Instagram transcripts to coverage across this spectrum, the platform aims to provide readers a balanced view of highly contested national topics.",
+    centerSummary: "Only the Truth launched as an open, crowd-sourced database analyzing media bias in India. The platform maps articles from 60 prominent Indian news outlets-divided into 30 left-leaning/opposition-leaning and 30 right-leaning/pro-government-leaning sources. By matching search queries and Instagram transcripts to coverage across this spectrum, the platform aims to provide readers a balanced view of highly contested national topics.",
     biasScore: 0,
     searchCount: 142,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago

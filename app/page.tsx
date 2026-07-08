@@ -28,7 +28,7 @@ interface AnalysisResult {
 const translations = {
   EN: {
     heroTitle: "Making humans critical thinkers again.",
-    heroSubtext: "Scan any video from Instagram, YouTube or TikTok — we fact-check every claim across hundreds of sources and give you only the truth.",
+    heroSubtext: "Scan any video from Instagram, YouTube or TikTok - we fact-check every claim across hundreds of sources and give you only the truth.",
     factCheckBtn: "Fact Check",
     scanningBtn: "Scanning...",
     inputPlaceholder: "Paste any video link to fact-check",
@@ -42,7 +42,7 @@ const translations = {
   },
   HI: {
     heroTitle: "मनुष्यों को फिर से आलोचनात्मक विचारक बनाना।",
-    heroSubtext: "इंस्टाग्राम, यूट्यूब या टिकटॉक से किसी भी वीडियो को स्कैन करें — हम सैकड़ों स्रोतों से हर दावे की जांच करते हैं और आपको केवल सच दिखाते हैं।",
+    heroSubtext: "इंस्टाग्राम, यूट्यूब या टिकटॉक से किसी भी वीडियो को स्कैन करें - हम सैकड़ों स्रोतों से हर दावे की जांच करते हैं और आपको केवल सच दिखाते हैं।",
     factCheckBtn: "सत्य जांचें",
     scanningBtn: "जांच जारी है...",
     inputPlaceholder: "सत्य जांचने के लिए वीडियो लिंक पेस्ट करें",
@@ -56,7 +56,7 @@ const translations = {
   },
   HIN: {
     heroTitle: "Humans ko fir se critical thinkers banana.",
-    heroSubtext: "Instagram, YouTube ya TikTok ka koi bhi video scan karein — hum hundreds of sources se har claim fact-check karte hain aur aapko dete hain sirf sach.",
+    heroSubtext: "Instagram, YouTube ya TikTok ka koi bhi video scan karein - hum hundreds of sources se har claim fact-check karte hain aur aapko dete hain sirf sach.",
     factCheckBtn: "Fact Check Karein",
     scanningBtn: "Scanning ho rahi hai...",
     inputPlaceholder: "Fact check karne ke liye video link paste karein",
@@ -3354,9 +3354,9 @@ export default function HomePage() {
                       Your Score: {quizScore} / 5
                     </h4>
                     <p style={{ fontSize: '1rem', fontWeight: 800, color: '#222' }}>
-                      {quizScore === 5 ? "🧠 Master Thinker — Highly Resilient to Narrative Spin!" :
-                       quizScore >= 3 ? "🧐 Critical Practitioner — Fairly good, but stay vigilant!" :
-                       "⚠️ Highly Susceptible — Watch the thinking videos and try again!"}
+                      {quizScore === 5 ? "🧠 Master Thinker - Highly Resilient to Narrative Spin!" :
+                       quizScore >= 3 ? "🧐 Critical Practitioner - Fairly good, but stay vigilant!" :
+                       "⚠️ Highly Susceptible - Watch the thinking videos and try again!"}
                     </p>
                   </div>
 
