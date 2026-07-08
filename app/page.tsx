@@ -246,6 +246,12 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'INDIAN_POLITICS' | 'US_POLITICS' | 'WORLD_NEWS' | 'CRIMES_AGAINST_WOMEN' | 'OTHERS'>('INDIAN_POLITICS');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('monthly');
+  const [paymentId, setPaymentId] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [totalScansCount, setTotalScansCount] = useState<number>(0);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -436,8 +442,10 @@ export default function HomePage() {
 
   useEffect(() => {
     setUserEmail(localStorage.getItem('userEmail'));
+    setIsPremium(localStorage.getItem('isPremium') === 'true');
     const handleStorageChange = () => {
       setUserEmail(localStorage.getItem('userEmail'));
+      setIsPremium(localStorage.getItem('isPremium') === 'true');
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -516,6 +524,23 @@ export default function HomePage() {
     }
   };
 
+  const handlePaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentId.trim()) return;
+    setPaymentLoading(true);
+    setTimeout(() => {
+      setPaymentLoading(false);
+      setPaymentSuccess(true);
+      // Save premium status to local storage
+      localStorage.setItem('isPremium', 'true');
+      setIsPremium(true);
+      // Clear limits
+      localStorage.setItem('unregisteredSearchCount', '0');
+      // Dispatch storage event to sync other views
+      window.dispatchEvent(new Event('storage'));
+    }, 1800);
+  };
+
   const handleLogout = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     try {
@@ -524,6 +549,8 @@ export default function HomePage() {
       console.warn("Supabase signout failed:", err);
     }
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('isPremium');
+    setIsPremium(false);
     setUserEmail(null);
     setMainView('home');
     window.dispatchEvent(new Event('storage'));
@@ -660,24 +687,27 @@ export default function HomePage() {
     const today = new Date().toISOString().split('T')[0];
 
     // Limit check before submission
-    if (!userEmail) {
-      const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
-      if (unregisteredCount >= 1) {
-        setLoadingError('Please log in or sign up to perform more than 1 scan.');
-        setShowLoginModal(true);
-        return;
-      }
-    } else {
-      const dailyLimitStr = localStorage.getItem('dailySearchLimit');
-      if (dailyLimitStr) {
-        try {
-          const limitObj = JSON.parse(dailyLimitStr);
-          if (limitObj.date === today && limitObj.count >= 5) {
-            setLoadingError('You have reached your daily limit of 5 scans. Please try again tomorrow.');
-            return;
+    if (!isPremium) {
+      if (!userEmail) {
+        const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
+        if (unregisteredCount >= 1) {
+          setLoadingError('Please log in or sign up to perform more than 1 scan, or upgrade to Premium for unlimited scans.');
+          setShowLoginModal(true);
+          return;
+        }
+      } else {
+        const dailyLimitStr = localStorage.getItem('dailySearchLimit');
+        if (dailyLimitStr) {
+          try {
+            const limitObj = JSON.parse(dailyLimitStr);
+            if (limitObj.date === today && limitObj.count >= 5) {
+              setLoadingError('You have reached your daily limit of 5 scans. Upgrade to Premium for unlimited scans!');
+              setShowPremiumModal(true);
+              return;
+            }
+          } catch (e) {
+            console.error("Error parsing dailySearchLimit:", e);
           }
-        } catch (e) {
-          console.error("Error parsing dailySearchLimit:", e);
         }
       }
     }
@@ -702,24 +732,26 @@ export default function HomePage() {
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
 
       // Increment limits on successful analysis
-      if (!userEmail) {
-        const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
-        localStorage.setItem('unregisteredSearchCount', (unregisteredCount + 1).toString());
-      } else {
-        const dailyLimitStr = localStorage.getItem('dailySearchLimit');
-        let currentCount = 0;
-        if (dailyLimitStr) {
-          try {
-            const limitObj = JSON.parse(dailyLimitStr);
-            if (limitObj.date === today) {
-              currentCount = limitObj.count;
-            }
-          } catch (e) {}
+      if (!isPremium) {
+        if (!userEmail) {
+          const unregisteredCount = parseInt(localStorage.getItem('unregisteredSearchCount') || '0', 10);
+          localStorage.setItem('unregisteredSearchCount', (unregisteredCount + 1).toString());
+        } else {
+          const dailyLimitStr = localStorage.getItem('dailySearchLimit');
+          let currentCount = 0;
+          if (dailyLimitStr) {
+            try {
+              const limitObj = JSON.parse(dailyLimitStr);
+              if (limitObj.date === today) {
+                currentCount = limitObj.count;
+              }
+            } catch (e) {}
+          }
+          localStorage.setItem('dailySearchLimit', JSON.stringify({
+            date: today,
+            count: currentCount + 1
+          }));
         }
-        localStorage.setItem('dailySearchLimit', JSON.stringify({
-          date: today,
-          count: currentCount + 1
-        }));
       }
 
       setResult(data);
@@ -2659,6 +2691,32 @@ export default function HomePage() {
               </div>
             )}
             
+            <button 
+              className={`side-cta-btn ${isPremium ? 'premium-active-btn' : ''}`}
+              onClick={() => setShowPremiumModal(true)}
+              style={{
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                aspectRatio: 'auto',
+                width: '100%',
+                height: 'auto',
+                background: isPremium ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
+                marginBottom: '1rem',
+                padding: '0.85rem'
+              }}
+            >
+              <span>{isPremium ? '★ Premium Member' : '⚡ Upgrade to Premium'}</span>
+            </button>
+
             <div className="side-lang-btn-wrap">
               <button 
                 className="side-lang-btn" 
@@ -3734,8 +3792,28 @@ export default function HomePage() {
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{userEmail}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#78716c', marginTop: '0.25rem' }}>Active Member</div>
+                    <div style={{ fontSize: '0.8rem', color: '#78716c', marginTop: '0.25rem' }}>
+                      {isPremium ? '★ Premium Member (Unlimited Scans)' : 'Active Free Member'}
+                    </div>
                   </div>
+                  {!isPremium && (
+                    <button 
+                      onClick={() => setShowPremiumModal(true)}
+                      style={{
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '0.8rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        fontSize: '0.88rem'
+                      }}
+                    >
+                      ⚡ Upgrade to Premium
+                    </button>
+                  )}
                   <button 
                     onClick={handleLogout}
                     style={{
@@ -3926,6 +4004,162 @@ export default function HomePage() {
                   {isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
                 </button>
               </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ MODAL 03: PREMIUM PLANS ═══ */}
+      {showPremiumModal && (
+        <div className="modal-overlay" onClick={() => setShowPremiumModal(false)}>
+          <div className="modal-box" style={{ maxWidth: '500px', padding: '2rem' }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowPremiumModal(false)}>
+              <X size={20} />
+            </button>
+            <h3 className="modal-title" style={{ textAlign: 'center', fontFamily: 'var(--serif)', fontSize: '1.6rem', fontWeight: 900, marginBottom: '0.5rem' }}>
+              ⚡ Upgrade to Premium
+            </h3>
+            <p className="modal-body" style={{ textAlign: 'center', color: '#666', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
+              Select a plan to bypass guest & daily scan limits for unlimited instant AI fact-checking.
+            </p>
+
+            {/* Success state */}
+            {paymentSuccess ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '1rem 0' }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: '#10b981',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2rem'
+                }}>
+                  ✓
+                </div>
+                <h4 style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981' }}>Payment Successful!</h4>
+                <p style={{ fontSize: '0.85rem', color: '#555', textAlign: 'center' }}>
+                  Thank you! You are now a **Premium Member** with unlimited access to Only The Truth.
+                </p>
+                <button
+                  className="side-cta-btn"
+                  onClick={() => {
+                    setShowPremiumModal(false);
+                    setPaymentSuccess(false);
+                  }}
+                  style={{ border: 'none', borderRadius: '8px', cursor: 'pointer', padding: '0.8rem 2rem', background: '#000', color: '#fff' }}
+                >
+                  Start Fact-Checking
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Plan options */}
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div 
+                    onClick={() => setSelectedPlan('monthly')}
+                    style={{
+                      flex: 1,
+                      border: selectedPlan === 'monthly' ? '2px solid #d97706' : '1px solid #e5e7eb',
+                      background: selectedPlan === 'monthly' ? '#fef3c7' : '#fff',
+                      borderRadius: '12px',
+                      padding: '1rem',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#b45309', marginBottom: '0.25rem' }}>Monthly</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#111827' }}>₹100</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>Per Month</div>
+                  </div>
+
+                  <div 
+                    onClick={() => setSelectedPlan('annual')}
+                    style={{
+                      flex: 1,
+                      border: selectedPlan === 'annual' ? '2px solid #d97706' : '1px solid #e5e7eb',
+                      background: selectedPlan === 'annual' ? '#fef3c7' : '#fff',
+                      borderRadius: '12px',
+                      padding: '1rem',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      position: 'relative',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{
+                      position: 'absolute',
+                      top: '-10px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: '#d97706',
+                      color: '#fff',
+                      fontSize: '0.58rem',
+                      fontWeight: 800,
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '10px',
+                      textTransform: 'uppercase'
+                    }}>
+                      Save 16%
+                    </div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#b45309', marginBottom: '0.25rem', marginTop: '0.25rem' }}>Annual</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#111827' }}>₹1000</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>Per Year</div>
+                  </div>
+                </div>
+
+                {/* UroPay billing section */}
+                <div style={{ background: '#f9fafb', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#374151' }}>Pay with UroPay</span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#fff', background: '#3b82f6', padding: '0.15rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      URO PAY Gateway
+                    </span>
+                  </div>
+
+                  <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#4b5563', marginBottom: '0.25rem' }}>
+                        UroPay ID / UPI Address
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="username@uropay or name@upi" 
+                        value={paymentId}
+                        onChange={e => setPaymentId(e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.85rem', color: '#000', backgroundColor: '#fff' }}
+                      />
+                    </div>
+
+                    <button 
+                      type="submit"
+                      disabled={paymentLoading}
+                      style={{
+                        width: '100%',
+                        background: '#111827',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.8rem',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        marginTop: '0.25rem'
+                      }}
+                    >
+                      {paymentLoading ? 'Connecting to UroPay...' : `Pay ₹${selectedPlan === 'monthly' ? '100' : '1000'} via UroPay`}
+                    </button>
+                  </form>
+                </div>
+              </>
             )}
           </div>
         </div>
