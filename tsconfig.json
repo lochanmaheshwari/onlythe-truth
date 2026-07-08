@@ -37,6 +37,12 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "mobile",
+    "mobile-app",
+    "ios",
+    "out",
+    ".next",
+    ".expo"
   ]
 }
