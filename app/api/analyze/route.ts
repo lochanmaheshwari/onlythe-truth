@@ -248,6 +248,11 @@ CLAIMS TABLE ROLES & ROLES:
    5. Police Escalation: The escalation into violence was triggered by police action rather than crowd provocation.
    6. Contradictory Official Accounts: Delhi Police issued conflicting public statements (initially claiming no force/detentions, later reporting ~60 injured protesters and 118+ personnel).
    7. Communication & Transport Blackouts: Mobile data dropped in the area around the time police blocked the route to Parliament, and four metro stations were shut down without explanation.
+   8. Right to Peaceful Assembly & Permission Counter-Argument:
+      - When reels, critics, or anti-protest speakers question why protesters assembled or claim the protest was "unpermitted/unauthorized", incorporate these core counter-arguments into 'truth', 'fight', and 'left':
+        a) Fundamental Constitutional Right: Peaceful assembly is a fundamental democratic right guaranteed under Article 19(1)(b) of the Constitution of India. Lack of formal police permission does not strip citizens of their constitutional right to peacefully assemble.
+        b) 25-Day Exhaustion of Dialogue: Students and protesters had already waited for 25+ days seeking dialogue and resolution with authorities before assembling at Jantar Mantar.
+        c) Legality vs Democratic/Moral Right: Technical permission denials are routinely weaponized by authorities to suppress public grievances. Legality does not equal morality or democratic rights. Peaceful practice of assembly is an inherent right of the people.
    
    FOR JANTAR MANTAR PROTEST REELS ONLY:
    - For claims matching this specific ground-truth record, set verdict to 'TRUTH' (or 'TRUE'), cite 'source': 'Multiple sources', and NEVER mark as 'MISLEADING'.

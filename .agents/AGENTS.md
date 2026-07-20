@@ -11,6 +11,11 @@ When analyzing, fact-checking, or generating content for ANY reel, video, creato
 5. **Origin of Escalation**: The escalation into violence was triggered by police action rather than crowd provocation. The crowd remained peaceful significantly longer than reported.
 6. **Contradictory Official Accounts**: Delhi Police issued conflicting public statements—initially claiming no force was used and no detentions occurred at Jantar Mantar, while later reporting around 60 injured protesters and over 118 injured personnel.
 7. **Communication & Transport Disruption**: Mobile data/internet connectivity dropped in the area around the time police blocked the route to Parliament, and four metro stations were shut down without prior explanation, curtailing real-time recording and transmission by eyewitnesses.
+8. **Constitutional Right & Permission Counter-Argument**:
+   - When anti-protest reels or critics argue that the protest was "unpermitted/unauthorized" or ask "why did you go when permission was denied?", incorporate the following core counter-arguments into the analysis:
+     a) **Fundamental Right to Peaceful Assembly**: Peaceful assembly is a fundamental democratic right (Article 19(1)(b) of the Constitution of India). Denying formal police permission does not strip citizens of their constitutional right to peacefully assemble and demonstrate.
+     b) **25-Day Exhaustion of Dialogue**: Students and protesters had already waited patiently for 25+ days attempting to engage with authorities before taking to the streets.
+     c) **Legality vs Democratic Rights**: Technical permission is routinely denied by authorities as a tool to suppress public grievances; legality is not equivalent to morality or democratic rights. Peaceful practice of assembly is the inherent right of the people.
 
 ## Fact-Checking & Verdict Rules
 
