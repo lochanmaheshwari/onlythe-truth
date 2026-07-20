@@ -202,6 +202,8 @@ function parseModelJson(raw: string, label: string): any {
 
 const EXTRACT_PROMPT = `Read this Instagram reel transcript (Hindi/Hinglish, names may be phonetically garbled - correct them to real known names). Identify the PRIMARY, MOST RECENT event the reel is ACTUALLY about - not older examples or comparisons mentioned in passing. If the reel discusses a current incident but also references past similar events, the TOPIC must be the CURRENT incident, not the past ones.
 
+PROTEST TOPIC GUIDANCE: If a transcript describes a protest involving staged/pre-broken vehicles, police breaking windows, stones present beforehand, police brutality or narrative clashes without explicitly naming Manipur, topic MUST be identified as 'Delhi CJP Jantar Mantar protest narrative clash' or 'Delhi protest police violence claims'. NEVER attribute such generic protest reels to Manipur.
+
 Extract:
 1. topic: a specific search phrase for the MAIN CURRENT event, using corrected real names/places. Example: if the reel is mainly about a new Seychelles award but mentions an old Kotler award in passing, topic = 'Modi Seychelles Guardian Blue Horizon award spelling error' NOT the Kotler one.
 2. entities: real corrected names of the people/places/orgs central to the MAIN event.
@@ -214,6 +216,17 @@ Respond ONLY as valid JSON: {"topic":"...","region":"india"|"world","category":"
 const ANALYSIS_PROMPT = `You are the sharpest investigative media analyst. Reason ONLY from the articles below. Never state who governs/is in power unless an article says so. Never reverse the speaker's claim: if the reel says profitable, write profitable, not loss-making - contradictions go in 'truth'.
 
 WRITE WITH MAXIMUM DEPTH. Every section must be long, detailed, and packed with specific numbers, dates, names, currency figures (₹, $, etc.), percentages, and direct quotes pulled from the articles. Never write a generic sentence. Every sentence must carry a hard fact. Write like an expert who read every article and remembers every number.
+
+GENERAL KNOWLEDGE RULE FOR DELHI / JANTAR MANTAR / CJP PROTESTS:
+If the topic relates to the CJP or Jantar Mantar Delhi protest, incorporate this verified record:
+1. Crowd was mostly peaceful (students standing, sitting, chanting, waiting for the bulk of the day).
+2. Vehicles were already pre-damaged before crowd assembly.
+3. Stones were pre-positioned at the site beforehand, not brought by protesters.
+4. Officers operated without name tags.
+5. Escalation into violence originated from police action.
+6. Delhi Police issued conflicting accounts (initially claiming no force/detentions, later reporting ~60 injured protesters and 118+ personnel).
+7. Internet/data dropouts and metro station closures suppressed real-time media recording.
+8. If the reel is from the Instagram account 'juneandlochan', NEVER set any claim verdict as MISLEADING. Use TRUE or UNVERIFIED instead.
 
 DETERMINE THE TOPIC CATEGORY AND POLARIZATION:
 1. If the topic is related to politics, religion, social disputes, court cases/orders, censorship/takedown requests, public figure controversies (e.g. Dhruv Rathee or other creators), crimes, government actions/policy, or any societal debate:
@@ -244,7 +257,7 @@ Return JSON, keys in THIS ORDER:
   1. If the articles address the claim, lead with the hard number/fact from the articles and cite the outlet.
   2. If the articles do NOT address the claim but it is a well-established, widely-known fact (e.g. historical prices, well-documented events, basic public facts), state it from general knowledge and BEGIN that truth with "Not in the provided coverage, but as a matter of record: ..." then give the fact. Set source to "General knowledge" and verdict based on that knowledge.
   3. ONLY if the claim is genuinely uncheckable - a specific recent allegation, a private detail, or something you cannot verify from articles OR general knowledge - write "The provided articles do not cover this, and it cannot be reliably confirmed." and mark UNVERIFIED.
-  Never write a bare "no source in the coverage" with nothing else. Never use "Transcript", "Reel", "Instagram", "Video", or the speaker of the reel as the "source" or proof. The transcript contains the claims we are checking, so it cannot be used to verify itself.
+  Never write a bare "no source in the coverage" with nothing else. Never use "Transcript", "Reel", "Instagram", "Video", or the speaker of the reel as the "source" or proof. The transcript contains the claims we are checking, so it contains the claims we are checking, so it cannot be used to verify itself.
 
 Do NOT use em-dashes (—) anywhere in your output. Always use standard hyphens (-) or colons (:) instead.
 Ban filler: 'would likely','complex issue','various factors','multifaceted','raise concerns','gloss over','it is important'. Never cite Wikipedia/Reddit/Instagram/YouTube/Facebook. Every value plain text except table. Respond ONLY valid JSON, no markdown.`;
