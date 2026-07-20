@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { extractInstagramMedia } from '@/lib/customInstagramScraper';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import os from 'os';
@@ -664,64 +665,22 @@ export async function POST(request: Request) {
       transcript = tiktokTranscript;
 
     } else {
-      // ── Instagram → Apify Instagram scraper + Groq Whisper ──
-      // Primary actor: apify~instagram-scraper (returns full videoUrl/audioUrl details)
-      const primaryApifyUrl = `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
-      let apifyRes = await fetch(primaryApifyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          directUrls: [url],
-          resultsType: "details",
-          resultsLimit: 1
-        })
-      });
+      // ── Instagram → Custom Multi-Tier Instagram Extractor + Groq Whisper ──
+      const customResult = await extractInstagramMedia(url, APIFY_TOKEN);
+      item = {
+        shortCode: customResult.shortcode,
+        caption: customResult.caption,
+        ownerUsername: customResult.ownerUsername,
+        ownerFullName: customResult.ownerFullName,
+        videoUrl: customResult.videoUrl,
+        audioUrl: customResult.audioUrl,
+        displayUrl: customResult.displayUrl,
+        url: url
+      };
 
-      if (!apifyRes.ok) {
-        console.warn(`Primary Apify actor failed with status ${apifyRes.status}. Trying fallback actor...`);
-        const fallbackApifyUrl = `https://api.apify.com/v2/acts/xMc5Ga1oCONPmWJIa/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
-        apifyRes = await fetch(fallbackApifyUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            directUrls: [url],
-            resultsLimit: 1
-          })
-        });
-      }
-
-      if (!apifyRes.ok) {
-        throw new Error(`Apify Instagram scraper failed with status ${apifyRes.status}: ${await apifyRes.text()}`);
-      }
-
-      const apifyData = await apifyRes.json();
-      item = pickInstagramItemFromResponse(apifyData, requestedInstagramMediaId);
-      
-      const mediaUrl = item ? (item.audioUrl || item.videoUrl) : null;
-      if (item) {
-        console.log("Apify item available keys:", Object.keys(item));
-        if (item.error && !mediaUrl) {
-          console.error("Apify returned fatal error item without mediaUrl:", item);
-          throw new Error(`Apify scraping failed: ${item.errorDescription || item.error}`);
-        }
-      }
-
-      returnedInstagramMediaId = getInstagramMediaIdFromItem(item);
-      const norm = (s: string | null) => (s ?? '').trim().toLowerCase();
-      if (requestedInstagramMediaId && returnedInstagramMediaId && norm(requestedInstagramMediaId) !== norm(returnedInstagramMediaId)) {
-        console.error("Instagram media id mismatch:", {
-          requestedInstagramMediaId,
-          returnedInstagramMediaId,
-          itemUrl: item?.url,
-          apifyItems: Array.isArray(apifyData) ? apifyData.length : 1
-        });
-        throw new Error("Instagram scraper returned a different video than the one you pasted.");
-      }
-
-      if (!mediaUrl) {
-        console.error("Apify item missing mediaUrl. Full item:", item);
-        throw new Error("The pasted Instagram post does not expose downloadable video/audio media.");
-      }
+      returnedInstagramMediaId = customResult.shortcode;
+      const mediaUrl = customResult.mediaUrl;
+      console.log(`Custom Extractor (${customResult.extractedVia}) obtained mediaUrl:`, mediaUrl);
 
       console.log("Downloading audio/video from mediaUrl:", mediaUrl);
       const mediaRes = await fetch(mediaUrl);
