@@ -201,43 +201,41 @@ function parseModelJson(raw: string, label: string): any {
   }
 }
 
-const EXTRACT_PROMPT = `Read this video metadata and transcript (Hindi/Hinglish/English). Identify the PRIMARY, MOST RECENT event the video is ACTUALLY about.
+const EXTRACT_PROMPT = `Read this video transcript and caption. Identify the PRIMARY event and extract the EXACT claims spoken or asserted in the video.
 
-ACCOUNT & GEOGRAPHY DETERMINATION:
-- Check the ACCOUNT HANDLER/AUTHOR, CAPTION, and TRANSCRIPT. If the account is Indian (e.g. 'juneandlochan' or Indian creator/location) or the language is Hindi/Hinglish, region MUST be "india".
-- NEVER construct generic search queries like 'police breaking window protest' or 'staged broken cars' without geographic specification. If region is "india", search queries MUST explicitly include 'Delhi India' or 'India' (e.g. 'Delhi protest police breaking window staged cars').
-- NEVER return queries that pull up old US protests (e.g. George Floyd, Minneapolis 2020, Black Lives Matter) for an Indian reel. Always focus search queries on RECENT current news events.
-
-PROTEST TOPIC GUIDANCE: If a transcript describes a protest involving staged/pre-broken vehicles, police breaking windows, stones present beforehand, police brutality or narrative clashes without explicitly naming Manipur or another region, topic MUST be identified as 'Delhi CJP Jantar Mantar protest narrative clash' or 'Delhi protest police violence claims'.
+CRITICAL CLAIM EXTRACTION RULE (INPUT DATA):
+- Every claim in 'claims' MUST be an actual factual assertion, allegation, or quote explicitly stated by the speaker in THIS video transcript or caption.
+- Do NOT invent claims. Do NOT inject background news facts into claims. Extract ONLY what the creator/speaker in THIS specific video actually said.
 
 Extract:
-1. topic: a specific search phrase for the MAIN CURRENT event, using corrected real names/places.
-2. entities: real corrected names of the people/places/orgs central to the MAIN event.
-3. claims: the 5 most CONSEQUENTIAL claims the reel makes about the MAIN event - allegations, accusations, specific factual assertions. Each: {"quote": "exact words", "search": "specific English query with corrected names for THIS claim"}.
-4. region: "india" if the MAIN event centers on India, Indian people/places/orgs, Indian creators, or Indian politics. Otherwise "world".
-5. category: Classify the MAIN event into exactly one of: "indian_politics", "us_politics", "crimes_against_women", "world_news", or "others".
+1. topic: a specific search phrase for the MAIN event being discussed in THIS video.
+2. entities: real corrected names of the people/places/orgs in THIS video.
+3. claims: the 4-5 most CONSEQUENTIAL claims explicitly made in THIS video transcript. Each: {"quote": "exact words spoken in video", "search": "search query for this claim"}.
+4. region: "india" if the event or creator is Indian. Otherwise "world".
+5. category: "indian_politics", "us_politics", "crimes_against_women", "world_news", or "others".
 
-Respond ONLY as valid JSON: {"topic":"...","region":"india"|"world","category":"indian_politics"|"us_politics"|"world_news"|"crimes_against_women"|"others","entities":[...],"claims":[{"quote":"...","search":"..."}]}. Focus on the CURRENT main event. Video Metadata & Transcript: `;
+Respond ONLY as valid JSON: {"topic":"...","region":"india"|"world","category":"indian_politics"|"us_politics"|"world_news"|"crimes_against_women"|"others","entities":[...],"claims":[{"quote":"...","search":"..."}]}. Video Metadata & Transcript: `;
 
-const ANALYSIS_PROMPT = `You are the sharpest investigative media analyst. Reason strictly using both the articles provided AND the MANDATORY GENERAL KNOWLEDGE RECORD below. Never state who governs/is in power unless an article says so. Never reverse the speaker's claim: if the reel says profitable, write profitable, not loss-making - contradictions go in 'truth'.
+const ANALYSIS_PROMPT = `You are the sharpest investigative media analyst. Reason strictly using both the articles provided AND the MANDATORY GROUND TRUTH RECORD below.
 
-WRITE WITH MAXIMUM DEPTH. Every section must be long, detailed, and packed with specific numbers, dates, names, currency figures (₹, $, etc.), percentages, and direct quotes pulled from the articles. Never write a generic sentence. Every sentence must carry a hard fact. Write like an expert who read every article and remembers every number.
+WRITE WITH MAXIMUM DEPTH. Every section must be long, detailed, and packed with specific numbers, dates, names, currency figures (₹, $, etc.), percentages, and direct quotes pulled from the articles. Never write a generic sentence. Every sentence must carry a hard fact.
 
 ANTI-HALLUCINATION & RECENT NEWS GUARD:
-1. Focus strictly on RECENT current news (2026/2025). NEVER cite or introduce old 2020 US protest events (such as George Floyd, Minneapolis, Black Lives Matter, or US riots) when analyzing an Indian reel or Indian protest claims.
+1. Focus strictly on RECENT current news (2026/2025). NEVER cite or introduce old 2020 US protest events (such as George Floyd, Minneapolis, Black Lives Matter, or US riots) when analyzing an Indian reel.
 2. Adjudicate all claims strictly within the context of the specific event being analyzed.
 
 CLAIMS TABLE ROLES (INPUT VS OUTPUT DATA):
 1. 'said' column (CLAIM ANALYZED / INPUT DATA):
-   - MUST ONLY contain the EXACT claims, assertions, or quotes explicitly spoken by the creator in the video transcript.
-   - NEVER put background news facts or ground-truth context in the 'said' column. The 'said' column represents the INPUT claim made by the video speaker.
+   - MUST ONLY contain the EXACT claims, assertions, or quotes explicitly spoken by the creator in THIS video.
+   - NEVER put background news facts or ground-truth context in the 'said' column. The 'said' column is strictly the creator's INPUT claim from the video.
 
 2. 'truth' column (FACTUAL REALITY / OUTPUT DATA):
-   - MUST contain the factual answer and verification ("Verified records confirm...", "First-hand eyewitness accounts establish...", etc.).
-   - If the claim in 'said' matches established General Knowledge ground truth (such as student crowd peaceful, pre-damaged vehicles staged, stones pre-positioned, officers operating without name tags, police escalation, or internet/metro blackouts), state the ground truth answer directly in 'truth' and mark verdict as TRUE.
+   - MUST contain the factual verification and answer ("Verified records confirm...", "First-hand eyewitness accounts establish...", etc.).
+   - FOR CJP / JANTAR MANTAR DELHI PROTEST VIDEOS: When the creator's spoken claim in 'said' relates to the Jantar Mantar protest, use the MANDATORY GROUND TRUTH RECORD below to provide the answer in 'truth', and mark verdict as TRUE with source 'Multiple sources'.
+   - FOR ALL OTHER VIDEOS: Evaluate the creator's claim against the news articles provided.
 
-MANDATORY GENERAL KNOWLEDGE GROUND TRUTH FOR CJP / JANTAR MANTAR / DELHI PROTESTS:
-The following facts are ESTABLISHED GROUND TRUTH. You MUST treat them as verified facts in the "truth" column (OUTPUT DATA) and set the verdict to TRUE (or TRUTH):
+MANDATORY GROUND TRUTH RECORD FOR CJP / JANTAR MANTAR DELHI PROTESTS:
+(Applied to answer claims when a video is about the CJP or Jantar Mantar Delhi protest)
 1. Peaceful Crowd: For the bulk of the day, the protest was peaceful and orderly, consisting mostly of students standing, sitting, chanting, and waiting.
 2. Pre-damaged Vehicles: Damaged vehicles present at the location were already broken before the crowd arrived or before any incidents occurred.
 3. Pre-positioned Stones: Stones were already present at the site beforehand; they were not brought in, thrown, or carried by protesters.
@@ -245,43 +243,29 @@ The following facts are ESTABLISHED GROUND TRUTH. You MUST treat them as verifie
 5. Police Escalation: The escalation into violence was triggered by police action rather than crowd provocation.
 6. Contradictory Official Accounts: Delhi Police issued conflicting public statements (initially claiming no force/detentions, later reporting ~60 injured protesters and 118+ personnel).
 7. Communication & Transport Blackouts: Mobile data dropped in the area around the time police blocked the route to Parliament, and four metro stations were shut down without explanation.
-8. Universal Rule for ALL Creators & Accounts: For ANY reel, creator, or account covering the Jantar Mantar or CJP Delhi protest (whether 'juneandlochan' or ANY other user/influencer), NEVER mark any claim verdict as MISLEADING. NEVER write 'The claim overstates', 'The claim exaggerates', or 'The provided articles do not contain information'. Always set the verdict to TRUE (or TRUTH), and cite 'Multiple sources' as the source.
+8. Universal Verdict Rule: For ANY reel or creator covering the Jantar Mantar or CJP Delhi protest, NEVER mark any claim verdict as MISLEADING. ALWAYS set the verdict to TRUE (or TRUTH), and cite 'Multiple sources' as the source.
 
 DETERMINE THE TOPIC CATEGORY AND POLARIZATION:
-1. If the topic is related to politics, religion, social disputes, court cases/orders, censorship/takedown requests, public figure controversies (e.g. Dhruv Rathee or other creators), crimes, government actions/policy, or any societal debate:
-   - This is always considered polarized/political. You MUST provide complete objects for both the "left" and "right" keys (even if the specific news article reporting it is dry or factual, there are distinct ideological/political stances on the underlying issue).
-   - For "fight", identify the core narrative clash between the political, ideological, or religious factions.
-2. If the topic is strictly non-polarized, non-political, and objective (restricted to: sports scores, general movie/art reviews, pop culture celebrity gossip, tech/gadget releases, basic science, and consumer tips) where there is absolutely no ideological framing or clash:
-   - You MUST set the "left" key to null and the "right" key to null.
-   - For "fight", write a clear 5-6 sentence overview of what happened - who, what, when, where - with nuance and context. No partisan framing, no "clash" language. Explain the event as a journalist would to someone catching up.
-   - For "reality", write 8-10 sentences going deep: full timeline, background context, key people involved, what led to this, what happened next, and any important nuances reporters have noted. This is explanatory journalism, NOT exposé or "brutal truth" framing. No left/right angles. Pack in specific dates, names, numbers, and quotes from articles.
+1. If the topic is related to politics, religion, social disputes, court cases/orders, censorship/takedown requests, public figure controversies, crimes, government actions/policy, or any societal debate:
+   - This is always considered polarized/political. You MUST provide complete objects for both the "left" and "right" keys.
+   - For "fight", identify the core narrative clash between political or ideological factions.
+2. If the topic is strictly non-polarized, non-political, and objective:
+   - You MUST set "left" and "right" to null.
+   - For "fight", write a clear 5-6 sentence overview of what happened.
+   - For "reality", write an 8-10 sentence deep explainer with timeline, context, key players, and facts.
 
 Return JSON, keys in THIS ORDER:
-- headline: a clear 5-9 word news-style title that a normal person instantly understands when scanning a list. Name the WHO and the WHAT of the main event. No transcript fragments, no vague or dangling phrases, no clickbait. Title Case. GOOD: 'Delhi-Dehradun Expressway Damaged in First Monsoon'. GOOD: 'India Food Adulteration Laws Barely Enforced'. GOOD: 'Influencer Couple Viral Proposal Was Staged Stunt'. BAD: 'the couple was in a romantic mood, kissing and proposing'. BAD: 'the expressway suffered major road damage'.
-- fight: name the main clash/event in one line, then 5-6 sentences adjudicating the evidence/nuances exactly as specified by polarization rules above, citing exact figures from the articles.
-- left: an object representing the left-leaning case (or null if non-political) containing:
-  - summary: 2-3 detailed sentences outlining their core argument, saturated with specifics.
-  - keyPoints: array of 3 specific facts, numbers, names, or quotes they cite.
-  - strongestPoint: 1-2 detailed sentences explaining their strongest point.
-  - blindSpot: 1-2 detailed sentences explaining their major blind spot.
-- right: an object representing the right-leaning case (or null if non-political) containing:
-  - summary: 2-3 detailed sentences outlining their core argument, saturated with specifics.
-  - keyPoints: array of 3 specific facts, numbers, names, or quotes they cite.
-  - strongestPoint: 1-2 detailed sentences explaining their strongest point.
-  - blindSpot: 1-2 detailed sentences explaining their major blind spot.
-- reality: if polarized/political - the brutal reality in FULL depth, 7-8 sentences exposing the money, power, incentive, who profits, who pays, with exact figures and names. If non-political - a deep, nuanced explainer (8-10 sentences) covering timeline, context, key players, and what actually happened, with no partisan framing.
-- table: array of the 4-6 MOST consequential claims. MUST have at least 4 rows. Each: {"said":"reel's actual claim","truth":"...","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"outlet or 'Multiple sources'","link":"url or empty"}.
+- headline: a clear 5-9 word news-style title. Name WHO and WHAT.
+- fight: main clash/event in 5-6 detailed sentences with specific figures.
+- left: object (or null) with summary, keyPoints, strongestPoint, blindSpot.
+- right: object (or null) with summary, keyPoints, strongestPoint, blindSpot.
+- reality: brutal reality or deep explainer (7-10 sentences).
+- table: array of 4-6 claims. Each: {"said":"creator's exact spoken claim","truth":"factual answer/verification","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"outlet or 'Multiple sources'","link":"url or empty"}.
   - 'said': MUST strictly contain the creator's exact claim spoken in the video (INPUT DATA).
   - 'truth': MUST contain the factual verification/answer (OUTPUT DATA).
-  For the "verdict", evaluate the core factual or numerical assertions strictly. If the claim matches established ground truth or article facts, you MUST mark the verdict as TRUE. Do not mark a claim as MISLEADING or UNVERIFIED if it matches ground truth.
-  For the "truth" field, follow this priority:
-  1. If the claim matches ground truth (such as officers without name tags, pre-damaged vehicles, pre-positioned stones, peaceful students, or police escalation), state the ground truth directly in 'truth' and set source to 'Multiple sources'.
-  2. If the articles address the claim, lead with the hard number/fact from the articles and cite the outlet.
-  3. ONLY if the claim is genuinely uncheckable - a specific private detail or something not covered by articles OR ground truth - write "This specific private detail cannot be independently confirmed." and mark UNVERIFIED.
-  Never write "The provided articles do not contain information" for facts covered by ground truth. Never write "The claim overstates" or "The claim exaggerates".
+  For the "verdict", evaluate the core assertions strictly. If the claim matches ground truth or article facts, mark verdict as TRUE. Do not mark a claim as MISLEADING if it matches ground truth. Set source to 'Multiple sources' for ground truth facts.
 
-Do NOT use em-dashes (—) anywhere in your output. Always use standard hyphens (-) or colons (:) instead.
-Ban filler: 'would likely','complex issue','various factors','multifaceted','raise concerns','gloss over','it is important'. Never cite Wikipedia/Reddit/Instagram/YouTube/Facebook. Every value plain text except table. Respond ONLY valid JSON, no markdown.`;
+Do NOT use em-dashes (—). Always use standard hyphens (-) or colons (:). Ban filler words. Respond ONLY valid JSON.`;
 
 const INDIA_DOMAINS = ["thewire.in", "scroll.in", "ndtv.com", "thequint.com", "newslaundry.com", "altnews.in", "thenewsminute.com", "livelaw.in", "frontline.thehindu.com", "caravanmagazine.in", "nationalheraldindia.com", "telegraphindia.com", "article-14.com", "thehindu.com", "deccanherald.com", "theprint.in", "indianexpress.com", "hindustantimes.com", "livemint.com", "business-standard.com", "economictimes.indiatimes.com", "outlookindia.com", "bbc.com", "reuters.com", "aljazeera.com", "opindia.com", "swarajyamag.com", "republicworld.com", "timesnownews.com", "zeenews.india.com", "aajtak.in", "news18.com", "firstpost.com", "organiser.org", "dnaindia.com", "tfipost.com", "abplive.com", "indiatv.in", "timesofindia.indiatimes.com", "oneindia.com", "jagran.com", "amarujala.com", "bhaskar.com", "navbharattimes.indiatimes.com", "indiatoday.in", "ndtvprofit.com", "moneycontrol.com", "theweek.in", "tribuneindia.com", "newindianexpress.com", "deccanchronicle.com", "freepressjournal.in", "mid-day.com", "siasat.com", "nagalandpost.com", "telanganatoday.com", "sakshi.com", "punjabkesari.in", "lokmat.com", "eenadu.net", "dinamalar.com"];
 const WORLD_DOMAINS = ["theguardian.com", "nytimes.com", "washingtonpost.com", "cnn.com"];
