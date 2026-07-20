@@ -537,7 +537,10 @@ export default function HomePage() {
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
           email: inputEmail.trim(),
-          password: password.trim()
+          password: password.trim(),
+          options: {
+            emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
+          }
         });
         if (error) throw error;
         
