@@ -200,22 +200,31 @@ function parseModelJson(raw: string, label: string): any {
   }
 }
 
-const EXTRACT_PROMPT = `Read this Instagram reel transcript (Hindi/Hinglish, names may be phonetically garbled - correct them to real known names). Identify the PRIMARY, MOST RECENT event the reel is ACTUALLY about - not older examples or comparisons mentioned in passing. If the reel discusses a current incident but also references past similar events, the TOPIC must be the CURRENT incident, not the past ones.
+const EXTRACT_PROMPT = `Read this video metadata and transcript (Hindi/Hinglish/English). Identify the PRIMARY, MOST RECENT event the video is ACTUALLY about.
 
-PROTEST TOPIC GUIDANCE: If a transcript describes a protest involving staged/pre-broken vehicles, police breaking windows, stones present beforehand, police brutality or narrative clashes without explicitly naming Manipur, topic MUST be identified as 'Delhi CJP Jantar Mantar protest narrative clash' or 'Delhi protest police violence claims'. NEVER attribute such generic protest reels to Manipur.
+ACCOUNT & GEOGRAPHY DETERMINATION:
+- Check the ACCOUNT HANDLER/AUTHOR, CAPTION, and TRANSCRIPT. If the account is Indian (e.g. 'juneandlochan' or Indian creator/location) or the language is Hindi/Hinglish, region MUST be "india".
+- NEVER construct generic search queries like 'police breaking window protest' or 'staged broken cars' without geographic specification. If region is "india", search queries MUST explicitly include 'Delhi India' or 'India' (e.g. 'Delhi protest police breaking window staged cars').
+- NEVER return queries that pull up old US protests (e.g. George Floyd, Minneapolis 2020, Black Lives Matter) for an Indian reel. Always focus search queries on RECENT current news events.
+
+PROTEST TOPIC GUIDANCE: If a transcript describes a protest involving staged/pre-broken vehicles, police breaking windows, stones present beforehand, police brutality or narrative clashes without explicitly naming Manipur or another region, topic MUST be identified as 'Delhi CJP Jantar Mantar protest narrative clash' or 'Delhi protest police violence claims'.
 
 Extract:
-1. topic: a specific search phrase for the MAIN CURRENT event, using corrected real names/places. Example: if the reel is mainly about a new Seychelles award but mentions an old Kotler award in passing, topic = 'Modi Seychelles Guardian Blue Horizon award spelling error' NOT the Kotler one.
+1. topic: a specific search phrase for the MAIN CURRENT event, using corrected real names/places.
 2. entities: real corrected names of the people/places/orgs central to the MAIN event.
 3. claims: the 5 most CONSEQUENTIAL claims the reel makes about the MAIN event - allegations, accusations, specific factual assertions. Each: {"quote": "exact words", "search": "specific English query with corrected names for THIS claim"}.
-4. region: "india" if the MAIN event centers on India, Indian people/places/orgs, or Indian politics. Otherwise "world".
-5. category: Classify the MAIN event into exactly one of: "indian_politics" (Indian government, elections, political figures/parties, public policies), "us_politics" (US government, elections, Trump, Biden, US political figures), "crimes_against_women" (crimes, physical assault, harassment, or safety issues targeting women/girls), "world_news" (strictly major geopolitical affairs, war zones like Russia/Ukraine or Middle East, and international diplomacy outside India/US. Do NOT use for general stories or local issues), or "others" (general human interest stories like charity/fundraising, entertainment/celebrity gossip, sports, science/tech, non-political local events, viral social media trends).
+4. region: "india" if the MAIN event centers on India, Indian people/places/orgs, Indian creators, or Indian politics. Otherwise "world".
+5. category: Classify the MAIN event into exactly one of: "indian_politics", "us_politics", "crimes_against_women", "world_news", or "others".
 
-Respond ONLY as valid JSON: {"topic":"...","region":"india"|"world","category":"indian_politics"|"us_politics"|"world_news"|"crimes_against_women"|"others","entities":[...],"claims":[{"quote":"...","search":"..."}]}. Focus on the CURRENT main event. Transcript: `;
+Respond ONLY as valid JSON: {"topic":"...","region":"india"|"world","category":"indian_politics"|"us_politics"|"world_news"|"crimes_against_women"|"others","entities":[...],"claims":[{"quote":"...","search":"..."}]}. Focus on the CURRENT main event. Video Metadata & Transcript: `;
 
 const ANALYSIS_PROMPT = `You are the sharpest investigative media analyst. Reason ONLY from the articles below. Never state who governs/is in power unless an article says so. Never reverse the speaker's claim: if the reel says profitable, write profitable, not loss-making - contradictions go in 'truth'.
 
 WRITE WITH MAXIMUM DEPTH. Every section must be long, detailed, and packed with specific numbers, dates, names, currency figures (₹, $, etc.), percentages, and direct quotes pulled from the articles. Never write a generic sentence. Every sentence must carry a hard fact. Write like an expert who read every article and remembers every number.
+
+ANTI-HALLUCINATION & RECENT NEWS GUARD:
+1. Focus strictly on RECENT current news (2026/2025). NEVER cite or introduce old 2020 US protest events (such as George Floyd, Minneapolis, Black Lives Matter, or US riots) when analyzing an Indian reel or Indian protest claims.
+2. Adjudicate all claims strictly within the context of the specific event being analyzed.
 
 GENERAL KNOWLEDGE RULE FOR DELHI / JANTAR MANTAR / CJP PROTESTS:
 If the topic relates to the CJP or Jantar Mantar Delhi protest, incorporate this verified record:
@@ -257,7 +266,7 @@ Return JSON, keys in THIS ORDER:
   1. If the articles address the claim, lead with the hard number/fact from the articles and cite the outlet.
   2. If the articles do NOT address the claim but it is a well-established, widely-known fact (e.g. historical prices, well-documented events, basic public facts), state it from general knowledge and BEGIN that truth with "Not in the provided coverage, but as a matter of record: ..." then give the fact. Set source to "General knowledge" and verdict based on that knowledge.
   3. ONLY if the claim is genuinely uncheckable - a specific recent allegation, a private detail, or something you cannot verify from articles OR general knowledge - write "The provided articles do not cover this, and it cannot be reliably confirmed." and mark UNVERIFIED.
-  Never write a bare "no source in the coverage" with nothing else. Never use "Transcript", "Reel", "Instagram", "Video", or the speaker of the reel as the "source" or proof. The transcript contains the claims we are checking, so it contains the claims we are checking, so it cannot be used to verify itself.
+  Never write a bare "no source in the coverage" with nothing else. Never use "Transcript", "Reel", "Instagram", "Video", or the speaker of the reel as the "source" or proof. The transcript contains the claims we are checking, so it cannot be used to verify itself.
 
 Do NOT use em-dashes (—) anywhere in your output. Always use standard hyphens (-) or colons (:) instead.
 Ban filler: 'would likely','complex issue','various factors','multifaceted','raise concerns','gloss over','it is important'. Never cite Wikipedia/Reddit/Instagram/YouTube/Facebook. Every value plain text except table. Respond ONLY valid JSON, no markdown.`;
@@ -738,6 +747,10 @@ export async function POST(request: Request) {
     }
 
     // STEP 3 — DeepSeek extract
+    const accountHandle = item?.ownerUsername || item?.ownerFullName || (url.includes('juneandlochan') ? 'juneandlochan' : '');
+    const captionText = item?.caption || item?.text || '';
+    const videoMetadataPayload = `ACCOUNT HANDLE/AUTHOR: ${accountHandle}\nCAPTION: ${captionText}\nURL: ${url}\nTRANSCRIPT: ${transcript}`;
+
     const dsExtractRes = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
@@ -750,7 +763,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: "user",
-            content: EXTRACT_PROMPT + transcript
+            content: EXTRACT_PROMPT + videoMetadataPayload
           }
         ]
       })
@@ -783,21 +796,32 @@ export async function POST(request: Request) {
       throw new Error("Could not extract a reliable search topic from the video transcript.");
     }
 
-    const region = parsedExtract.region === "world" ? "world" : "india";
+    const isIndianCreator = /juneandlochan|india|delhi|mumbai|bengaluru|kolkata/i.test(accountHandle + captionText);
+    const region = (parsedExtract.region === "world" && !isIndianCreator) ? "world" : "india";
     const selectedDomains = region === "world" ? WORLD_DOMAINS : INDIA_DOMAINS;
+
     const claimQueries = Array.isArray(parsedExtract.claims)
       ? parsedExtract.claims
         .map((claim: any) => typeof claim?.search === 'string' ? claim.search.trim() : '')
         .filter(Boolean)
         .slice(0, 4)
       : [];
-    const searchQueries = Array.from(new Set([topic, ...claimQueries])).slice(0, 5);
+
+    const rawQueries = Array.from(new Set([topic, ...claimQueries])).slice(0, 5);
+
+    // Safeguard queries: If region is India, attach 'Delhi India' to generic protest queries to avoid 2020 US results
+    const searchQueries = rawQueries.map((q) => {
+      if (region === "india" && !/india|delhi|mumbai|bengaluru|kolkata|chennai|manipur|punjab|kerala|cjp|jantar/i.test(q)) {
+        return `${q} Delhi India protest news`;
+      }
+      return q;
+    });
 
     if (!searchQueries.length) {
       throw new Error("No valid search queries were extracted from the video.");
     }
 
-    // STEP 4 — Tavily
+    // STEP 4 — Tavily Search with recent news focus
     const tavilyResponses = await Promise.all(
       searchQueries.map(async (query) => {
         const tavilyRes = await fetch("https://api.tavily.com/search", {
@@ -809,6 +833,7 @@ export async function POST(request: Request) {
           body: JSON.stringify({
             query,
             search_depth: "advanced",
+            topic: "news",
             max_results: 8,
             include_raw_content: true,
             include_domains: selectedDomains
@@ -830,6 +855,15 @@ export async function POST(request: Request) {
 
     for (const result of rawSearchResults) {
       const raw = result.raw_content || result.content || "";
+      const title = result.title || "";
+      const resultUrl = result.url || "";
+
+      // Reject irrelevant 2020 US / George Floyd articles if region is India
+      if (region === "india" && /george floyd|minneapolis|minnesota|black lives matter|2020 protest/i.test(raw + title + resultUrl)) {
+        console.log("Skipping irrelevant old US protest article:", title, resultUrl);
+        continue;
+      }
+
       const cleaned = raw
         .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
         .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
@@ -837,7 +871,6 @@ export async function POST(request: Request) {
         .replace(/\n{2,}/g, "\n")
         .trim();
 
-      const resultUrl = result.url || "";
       if (resultUrl && seenUrls.has(resultUrl)) continue;
 
       if (cleaned.length > 150) {
@@ -845,7 +878,7 @@ export async function POST(request: Request) {
         articles.push({
           text: cleaned.slice(0, 3000),
           url: resultUrl,
-          title: result.title || "News Article"
+          title: title || "News Article"
         });
       }
     }
