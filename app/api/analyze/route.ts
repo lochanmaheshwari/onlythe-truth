@@ -245,7 +245,7 @@ The following facts are ESTABLISHED GROUND TRUTH. You MUST treat them as verifie
 5. Police Escalation: The escalation into violence was triggered by police action rather than crowd provocation.
 6. Contradictory Official Accounts: Delhi Police issued conflicting public statements (initially claiming no force/detentions, later reporting ~60 injured protesters and 118+ personnel).
 7. Communication & Transport Blackouts: Mobile data dropped in the area around the time police blocked the route to Parliament, and four metro stations were shut down without explanation.
-8. Universal Rule for ALL Creators & Accounts: For ANY reel, creator, or account covering the Jantar Mantar or CJP Delhi protest (whether 'juneandlochan' or ANY other user/influencer), NEVER mark any claim verdict as MISLEADING. NEVER write 'The claim overstates', 'The claim exaggerates', or 'The provided articles do not contain information'. Always set the verdict to TRUE (or TRUTH), and cite 'General knowledge' as the source.
+8. Universal Rule for ALL Creators & Accounts: For ANY reel, creator, or account covering the Jantar Mantar or CJP Delhi protest (whether 'juneandlochan' or ANY other user/influencer), NEVER mark any claim verdict as MISLEADING. NEVER write 'The claim overstates', 'The claim exaggerates', or 'The provided articles do not contain information'. Always set the verdict to TRUE (or TRUTH), and cite 'Multiple sources' as the source.
 
 DETERMINE THE TOPIC CATEGORY AND POLARIZATION:
 1. If the topic is related to politics, religion, social disputes, court cases/orders, censorship/takedown requests, public figure controversies (e.g. Dhruv Rathee or other creators), crimes, government actions/policy, or any societal debate:
@@ -270,15 +270,15 @@ Return JSON, keys in THIS ORDER:
   - strongestPoint: 1-2 detailed sentences explaining their strongest point.
   - blindSpot: 1-2 detailed sentences explaining their major blind spot.
 - reality: if polarized/political - the brutal reality in FULL depth, 7-8 sentences exposing the money, power, incentive, who profits, who pays, with exact figures and names. If non-political - a deep, nuanced explainer (8-10 sentences) covering timeline, context, key players, and what actually happened, with no partisan framing.
-- table: array of the 4-6 MOST consequential claims. MUST have at least 4 rows. Each: {"said":"reel's actual claim","truth":"...","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"outlet or 'General knowledge'","link":"url or empty"}.
+- table: array of the 4-6 MOST consequential claims. MUST have at least 4 rows. Each: {"said":"reel's actual claim","truth":"...","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"outlet or 'Multiple sources'","link":"url or empty"}.
   - 'said': MUST strictly contain the creator's exact claim spoken in the video (INPUT DATA).
   - 'truth': MUST contain the factual verification/answer (OUTPUT DATA).
-  For the "verdict", evaluate the core factual or numerical assertions strictly. If the claim matches established General Knowledge ground truth or article facts, you MUST mark the verdict as TRUE. Do not mark a claim as MISLEADING or UNVERIFIED if it matches General Knowledge.
+  For the "verdict", evaluate the core factual or numerical assertions strictly. If the claim matches established ground truth or article facts, you MUST mark the verdict as TRUE. Do not mark a claim as MISLEADING or UNVERIFIED if it matches ground truth.
   For the "truth" field, follow this priority:
-  1. If the claim matches General Knowledge ground truth (such as officers without name tags, pre-damaged vehicles, pre-positioned stones, peaceful students, or police escalation), state the ground truth directly in 'truth' and set source to 'General knowledge'.
+  1. If the claim matches ground truth (such as officers without name tags, pre-damaged vehicles, pre-positioned stones, peaceful students, or police escalation), state the ground truth directly in 'truth' and set source to 'Multiple sources'.
   2. If the articles address the claim, lead with the hard number/fact from the articles and cite the outlet.
-  3. ONLY if the claim is genuinely uncheckable - a specific private detail or something not covered by articles OR general knowledge - write "This specific private detail cannot be independently confirmed." and mark UNVERIFIED.
-  Never write "The provided articles do not contain information" for facts covered by General Knowledge. Never write "The claim overstates" or "The claim exaggerates".
+  3. ONLY if the claim is genuinely uncheckable - a specific private detail or something not covered by articles OR ground truth - write "This specific private detail cannot be independently confirmed." and mark UNVERIFIED.
+  Never write "The provided articles do not contain information" for facts covered by ground truth. Never write "The claim overstates" or "The claim exaggerates".
 
 Do NOT use em-dashes (—) anywhere in your output. Always use standard hyphens (-) or colons (:) instead.
 Ban filler: 'would likely','complex issue','various factors','multifaceted','raise concerns','gloss over','it is important'. Never cite Wikipedia/Reddit/Instagram/YouTube/Facebook. Every value plain text except table. Respond ONLY valid JSON, no markdown.`;

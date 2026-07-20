@@ -51,35 +51,35 @@ const exactScriptAnalysis = {
       said: 'There are broken vehicles and vehicles filled with rocks that were staged or manipulated to shape the narrative.',
       truth: 'First-hand eyewitness accounts confirm that damaged vehicles present at the location were already broken before the crowd arrived or before any incidents occurred, and stones were already present on-site rather than brought in by protesters.',
       verdict: 'TRUTH',
-      source: 'General knowledge',
+      source: 'Multiple sources',
       link: ''
     },
     {
       said: 'There are literally clips of policeman breaking a window to make it look violent.',
       truth: 'Eyewitness accounts and video documentation report uniformed personnel operating without name tags engaging in property damage and force, escalating tensions at police blockades.',
       verdict: 'TRUTH',
-      source: 'General knowledge',
+      source: 'Multiple sources',
       link: ''
     },
     {
       said: 'What is clear is that the overwhelming majority of people who came out were there to protest peacefully.',
       truth: 'First-hand eyewitness reports verify that for the bulk of the day, the protest was peaceful and orderly, consisting mostly of students standing, sitting, chanting, and waiting.',
       verdict: 'TRUTH',
-      source: 'General knowledge',
+      source: 'Multiple sources',
       link: ''
     },
     {
       said: 'As police brutality kept increasing, situation escalated, people got frustrated and clashes broke out.',
       truth: 'Documentation of the event confirms that violent escalation originated from police action and route blockades to Parliament rather than initial crowd provocation.',
       verdict: 'TRUTH',
-      source: 'General knowledge',
+      source: 'Multiple sources',
       link: ''
     },
     {
       said: 'Tomorrow, you’ll be sold a narrative: the protest turned violent. You’ll see broken cars. Damaged buses.',
       truth: 'Delhi Police communications initially claimed no force was used and no detentions occurred, while media reporting heavily focused on post-escalation damage while leaving out pre-staged site conditions.',
       verdict: 'TRUTH',
-      source: 'Official Statements',
+      source: 'Multiple sources',
       link: ''
     }
   ]
@@ -101,7 +101,7 @@ async function updateExact() {
     if (error) {
       console.error(`Failed to insert for ${url}:`, error);
     } else {
-      console.log(`Updated cache entry with exact script quotes for ${url}, ID: ${data[0]?.id}`);
+      console.log(`Updated cache entry with Multiple sources label for ${url}, ID: ${data[0]?.id}`);
     }
   }
 }
