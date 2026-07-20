@@ -665,30 +665,43 @@ export async function POST(request: Request) {
 
     } else {
       // ── Instagram → Apify Instagram scraper + Groq Whisper ──
-      const apifyUrl = `https://api.apify.com/v2/acts/xMc5Ga1oCONPmWJIa/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
-      const apifyRes = await fetch(apifyUrl, {
+      // Primary actor: apify~instagram-scraper (returns full videoUrl/audioUrl details)
+      const primaryApifyUrl = `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
+      let apifyRes = await fetch(primaryApifyUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           directUrls: [url],
-          username: [url],
-          resultsLimit: 1,
-          includeTranscript: false
+          resultsType: "details",
+          resultsLimit: 1
         })
       });
 
       if (!apifyRes.ok) {
-        throw new Error(`Apify failed with status ${apifyRes.status}: ${await apifyRes.text()}`);
+        console.warn(`Primary Apify actor failed with status ${apifyRes.status}. Trying fallback actor...`);
+        const fallbackApifyUrl = `https://api.apify.com/v2/acts/xMc5Ga1oCONPmWJIa/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
+        apifyRes = await fetch(fallbackApifyUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            directUrls: [url],
+            resultsLimit: 1
+          })
+        });
+      }
+
+      if (!apifyRes.ok) {
+        throw new Error(`Apify Instagram scraper failed with status ${apifyRes.status}: ${await apifyRes.text()}`);
       }
 
       const apifyData = await apifyRes.json();
       item = pickInstagramItemFromResponse(apifyData, requestedInstagramMediaId);
+      
+      const mediaUrl = item ? (item.audioUrl || item.videoUrl) : null;
       if (item) {
         console.log("Apify item available keys:", Object.keys(item));
-        if (item.error) {
-          console.error("Apify returned error item:", item);
+        if (item.error && !mediaUrl) {
+          console.error("Apify returned fatal error item without mediaUrl:", item);
           throw new Error(`Apify scraping failed: ${item.errorDescription || item.error}`);
         }
       }
@@ -705,7 +718,6 @@ export async function POST(request: Request) {
         throw new Error("Instagram scraper returned a different video than the one you pasted.");
       }
 
-      const mediaUrl = item ? (item.audioUrl || item.videoUrl) : null;
       if (!mediaUrl) {
         console.error("Apify item missing mediaUrl. Full item:", item);
         throw new Error("The pasted Instagram post does not expose downloadable video/audio media.");
