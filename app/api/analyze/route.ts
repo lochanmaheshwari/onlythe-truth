@@ -224,12 +224,15 @@ ANTI-HALLUCINATION & RECENT NEWS GUARD:
 1. Focus strictly on RECENT current news (2026/2025). NEVER cite or introduce old 2020 US protest events (such as George Floyd, Minneapolis, Black Lives Matter, or US riots) when analyzing an Indian reel.
 2. Adjudicate all claims strictly within the context of the specific event being analyzed.
 
-CLAIMS TABLE ROLES & SOURCE RULES:
+CLAIMS TABLE ROLES & ROLES:
 1. 'said' column (CLAIM ANALYZED / INPUT DATA):
-   - MUST ONLY contain the EXACT claims, assertions, or quotes explicitly spoken by the creator in THIS video transcript.
+   - MUST ONLY contain the EXACT verbatim quotes, assertions, or statements spoken by the creator in the video transcript.
+   - NEVER place ground-truth data points or background facts in the 'said' column under any circumstances.
 
 2. 'truth' column (FACTUAL REALITY / OUTPUT DATA):
-   - MUST contain the factual verification and lead with hard numbers and facts from the news articles.
+   - MUST contain the factual verification answer and ground-truth data points.
+   - For Jantar Mantar protest claims: Place the ground-truth data points (peaceful student crowd, pre-damaged vehicles, pre-positioned stones, unidentified officers without name tags, police escalation, contradictory police releases, communication/metro blackouts) in the 'truth' column as the factual reality basis for evaluating what was said.
+   - Evaluate the creator's statement in 'said' against the factual reality in 'truth' to determine the verdict ('TRUTH' / 'TRUE', 'FALSE', 'MISLEADING', 'UNVERIFIED').
 
 3. STANDARD FACT-CHECKING RULES (FOR ALL GENERAL REELS & CREATORS):
    - For all general reels and news topics, evaluate claims strictly against the news articles provided.
@@ -264,7 +267,7 @@ Return JSON, keys in THIS ORDER:
 - left: object (or null) with summary, keyPoints, strongestPoint, blindSpot.
 - right: object (or null) with summary, keyPoints, strongestPoint, blindSpot.
 - reality: brutal reality or deep explainer (7-10 sentences).
-- table: array of 4-6 claims. Each: {"said":"creator's exact spoken claim","truth":"factual verification from news articles","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"exact news outlet name (e.g. 'Indian Express', 'NDTV') OR 'Multiple sources' (strictly for Jantar Mantar ground truth)","link":"article url or empty"}.
+- table: array of 4-6 claims. Each: {"said":"creator's verbatim spoken script quote","truth":"factual reality / ground truth verification answer","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"exact news outlet name (e.g. 'Indian Express', 'NDTV') OR 'Multiple sources' (strictly for Jantar Mantar ground truth)","link":"article url or empty"}.
 
 Do NOT use em-dashes (—). Always use standard hyphens (-) or colons (:). Ban filler words. Respond ONLY valid JSON.`;
 

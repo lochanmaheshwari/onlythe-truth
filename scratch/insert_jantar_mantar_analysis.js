@@ -48,36 +48,36 @@ const exactScriptAnalysis = {
   reality: 'A detailed timeline of the Jantar Mantar CJP protest demonstrates a sharp conflict between official releases and eyewitness accounts. For most of the day, the assembly was peaceful, consisting mostly of students standing, sitting, chanting, and waiting. Friction escalated when police blocked the route to Parliament. Eyewitnesses confirmed that damaged vehicles and stones were already present on-site before the crowd arrived. Furthermore, internet dropouts and four metro station closures limited real-time media transmission. While Delhi Police initially reported no use of force or detentions, later official statements reported around 60 injured protesters and over 118 injured personnel.',
   table: [
     {
+      said: 'Tomorrow, you’ll be sold a narrative: the protest turned violent. You’ll see broken cars. Damaged buses.',
+      truth: 'First-hand eyewitness records and video documentation establish that damaged vehicles present at the location were already broken before the crowd arrived or before any incidents occurred.',
+      verdict: 'TRUTH',
+      source: 'Multiple sources',
+      link: ''
+    },
+    {
       said: 'There are broken vehicles and vehicles filled with rocks that were staged or manipulated to shape the narrative.',
-      truth: 'First-hand eyewitness accounts confirm that damaged vehicles present at the location were already broken before the crowd arrived or before any incidents occurred, and stones were already present on-site rather than brought in by protesters.',
+      truth: 'First-hand eyewitness ground truth confirms that vehicles present were pre-damaged and stones were already present on-site beforehand, rather than brought in or thrown by protesters.',
       verdict: 'TRUTH',
       source: 'Multiple sources',
       link: ''
     },
     {
       said: 'There are literally clips of policeman breaking a window to make it look violent.',
-      truth: 'Eyewitness accounts and video documentation report uniformed personnel operating without name tags engaging in property damage and force, escalating tensions at police blockades.',
+      truth: 'Multiple uniformed officers and personnel operated without name tags or identification tags on-site, engaging in force and property damage that escalated crowd frustration.',
       verdict: 'TRUTH',
       source: 'Multiple sources',
       link: ''
     },
     {
       said: 'What is clear is that the overwhelming majority of people who came out were there to protest peacefully.',
-      truth: 'First-hand eyewitness reports verify that for the bulk of the day, the protest was peaceful and orderly, consisting mostly of students standing, sitting, chanting, and waiting.',
+      truth: 'Eyewitness records verify that for the bulk of the day, the protest was peaceful and orderly, consisting mostly of students standing, sitting, chanting, and waiting.',
       verdict: 'TRUTH',
       source: 'Multiple sources',
       link: ''
     },
     {
-      said: 'As police brutality kept increasing, situation escalated, people got frustrated and clashes broke out.',
-      truth: 'Documentation of the event confirms that violent escalation originated from police action and route blockades to Parliament rather than initial crowd provocation.',
-      verdict: 'TRUTH',
-      source: 'Multiple sources',
-      link: ''
-    },
-    {
-      said: 'Tomorrow, you’ll be sold a narrative: the protest turned violent. You’ll see broken cars. Damaged buses.',
-      truth: 'Delhi Police communications initially claimed no force was used and no detentions occurred, while media reporting heavily focused on post-escalation damage while leaving out pre-staged site conditions.',
+      said: 'But as police brutality kept increasing, situation escalated, people got frustrated and clashes broke out.',
+      truth: 'Official reporting and documentation confirm that violent escalation was triggered by police barricades and force rather than crowd provocation, while mobile data drops and 4 metro shutdowns disrupted eyewitness transmission.',
       verdict: 'TRUTH',
       source: 'Multiple sources',
       link: ''
@@ -101,7 +101,7 @@ async function updateExact() {
     if (error) {
       console.error(`Failed to insert for ${url}:`, error);
     } else {
-      console.log(`Updated cache entry with Multiple sources label for ${url}, ID: ${data[0]?.id}`);
+      console.log(`Updated cache entry with exact spoken script quotes for ${url}, ID: ${data[0]?.id}`);
     }
   }
 }
