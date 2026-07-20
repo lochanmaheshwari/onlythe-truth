@@ -665,8 +665,8 @@ export async function POST(request: Request) {
       transcript = tiktokTranscript;
 
     } else {
-      // ── Instagram → Custom Self-Contained Backend Extractor + Groq Whisper ──
-      const customResult = await extractInstagramMedia(url, APIFY_TOKEN);
+      // ── Instagram → Native 100% In-House Extractor + Groq Whisper ──
+      const customResult = await extractInstagramMedia(url);
       item = {
         shortCode: customResult.shortcode,
         caption: customResult.caption,
