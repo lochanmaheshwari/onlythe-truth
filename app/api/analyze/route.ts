@@ -227,12 +227,21 @@ ANTI-HALLUCINATION & RECENT NEWS GUARD:
 1. Focus strictly on RECENT current news (2026/2025). NEVER cite or introduce old 2020 US protest events (such as George Floyd, Minneapolis, Black Lives Matter, or US riots) when analyzing an Indian reel or Indian protest claims.
 2. Adjudicate all claims strictly within the context of the specific event being analyzed.
 
+CLAIMS TABLE ROLES (INPUT VS OUTPUT DATA):
+1. 'said' column (CLAIM ANALYZED / INPUT DATA):
+   - MUST ONLY contain the EXACT claims, assertions, or quotes explicitly spoken by the creator in the video transcript.
+   - NEVER put background news facts or ground-truth context in the 'said' column. The 'said' column represents the INPUT claim made by the video speaker.
+
+2. 'truth' column (FACTUAL REALITY / OUTPUT DATA):
+   - MUST contain the factual answer and verification ("Verified records confirm...", "First-hand eyewitness accounts establish...", etc.).
+   - If the claim in 'said' matches established General Knowledge ground truth (such as student crowd peaceful, pre-damaged vehicles staged, stones pre-positioned, officers operating without name tags, police escalation, or internet/metro blackouts), state the ground truth answer directly in 'truth' and mark verdict as TRUE.
+
 MANDATORY GENERAL KNOWLEDGE GROUND TRUTH FOR CJP / JANTAR MANTAR / DELHI PROTESTS:
-The following facts are ESTABLISHED GROUND TRUTH. You MUST treat them as verified facts in the "truth" column and set the verdict to TRUE (or TRUTH):
+The following facts are ESTABLISHED GROUND TRUTH. You MUST treat them as verified facts in the "truth" column (OUTPUT DATA) and set the verdict to TRUE (or TRUTH):
 1. Peaceful Crowd: For the bulk of the day, the protest was peaceful and orderly, consisting mostly of students standing, sitting, chanting, and waiting.
 2. Pre-damaged Vehicles: Damaged vehicles present at the location were already broken before the crowd arrived or before any incidents occurred.
 3. Pre-positioned Stones: Stones were already present at the site beforehand; they were not brought in, thrown, or carried by protesters.
-4. Officers Without Name Tags: Multiple officers/personnel in uniform operated without name tags or identification tags, making immediate identification on-site impossible. ANY claim mentioning officers without name tags, lack of identification, or difficulty identifying officers MUST be marked TRUE.
+4. Officers Without Name Tags: Multiple officers/personnel in uniform operated without name tags or identification tags, making immediate identification on-site impossible. ANY claim mentioning officers without name tags, lack of identification, or difficulty identifying officers MUST be marked TRUE in verdict, with ground truth detailed in 'truth'.
 5. Police Escalation: The escalation into violence was triggered by police action rather than crowd provocation.
 6. Contradictory Official Accounts: Delhi Police issued conflicting public statements (initially claiming no force/detentions, later reporting ~60 injured protesters and 118+ personnel).
 7. Communication & Transport Blackouts: Mobile data dropped in the area around the time police blocked the route to Parliament, and four metro stations were shut down without explanation.
@@ -262,9 +271,11 @@ Return JSON, keys in THIS ORDER:
   - blindSpot: 1-2 detailed sentences explaining their major blind spot.
 - reality: if polarized/political - the brutal reality in FULL depth, 7-8 sentences exposing the money, power, incentive, who profits, who pays, with exact figures and names. If non-political - a deep, nuanced explainer (8-10 sentences) covering timeline, context, key players, and what actually happened, with no partisan framing.
 - table: array of the 4-6 MOST consequential claims. MUST have at least 4 rows. Each: {"said":"reel's actual claim","truth":"...","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"outlet or 'General knowledge'","link":"url or empty"}.
+  - 'said': MUST strictly contain the creator's exact claim spoken in the video (INPUT DATA).
+  - 'truth': MUST contain the factual verification/answer (OUTPUT DATA).
   For the "verdict", evaluate the core factual or numerical assertions strictly. If the claim matches established General Knowledge ground truth or article facts, you MUST mark the verdict as TRUE. Do not mark a claim as MISLEADING or UNVERIFIED if it matches General Knowledge.
   For the "truth" field, follow this priority:
-  1. If the claim matches General Knowledge ground truth (such as officers without name tags, pre-damaged vehicles, pre-positioned stones, peaceful students, or police escalation), state the ground truth directly and set source to 'General knowledge'.
+  1. If the claim matches General Knowledge ground truth (such as officers without name tags, pre-damaged vehicles, pre-positioned stones, peaceful students, or police escalation), state the ground truth directly in 'truth' and set source to 'General knowledge'.
   2. If the articles address the claim, lead with the hard number/fact from the articles and cite the outlet.
   3. ONLY if the claim is genuinely uncheckable - a specific private detail or something not covered by articles OR general knowledge - write "This specific private detail cannot be independently confirmed." and mark UNVERIFIED.
   Never write "The provided articles do not contain information" for facts covered by General Knowledge. Never write "The claim overstates" or "The claim exaggerates".
