@@ -253,6 +253,9 @@ CLAIMS TABLE ROLES & ROLES:
         a) Fundamental Constitutional Right: Peaceful assembly is a fundamental democratic right guaranteed under Article 19(1)(b) of the Constitution of India. Lack of formal police permission does not strip citizens of their constitutional right to peacefully assemble.
         b) 25-Day Exhaustion of Dialogue: Students and protesters had already waited for 25+ days seeking dialogue and resolution with authorities before assembling at Jantar Mantar.
         c) Legality vs Democratic/Moral Right: Technical permission denials are routinely weaponized by authorities to suppress public grievances. Legality does not equal morality or democratic rights. Peaceful practice of assembly is an inherent right of the people.
+   9. Causal Contextualization for Police Injury Claims:
+      - When claims or reels mention police injuries or harm (e.g. "118+ personnel injured"), DO NOT validate the number in isolation.
+      - ALWAYS explain the causal context in 'truth': Acknowledge the figures reported in official statements, but explicitly explain that these injuries occurred during downstream clashes triggered by police barricades blocking Parliament access, heavy police force, internet drops, and police escalation after students had peacefully assembled and waited for hours. Always maintain complete support for the students' peaceful stance and constitutional rights.
    
    FOR JANTAR MANTAR PROTEST REELS ONLY:
    - For claims matching this specific ground-truth record, set verdict to 'TRUTH' (or 'TRUE'), cite 'source': 'Multiple sources', and NEVER mark as 'MISLEADING'.
