@@ -224,30 +224,30 @@ ANTI-HALLUCINATION & RECENT NEWS GUARD:
 1. Focus strictly on RECENT current news (2026/2025). NEVER cite or introduce old 2020 US protest events (such as George Floyd, Minneapolis, Black Lives Matter, or US riots) when analyzing an Indian reel.
 2. Adjudicate all claims strictly within the context of the specific event being analyzed.
 
-CLAIMS TABLE ROLES & VERDICT RULES:
+CLAIMS TABLE ROLES & SOURCE RULES:
 1. 'said' column (CLAIM ANALYZED / INPUT DATA):
-   - MUST ONLY contain the EXACT claims, assertions, or quotes explicitly spoken by the creator in THIS video.
-   - NEVER put background news facts or ground-truth context in the 'said' column. The 'said' column is strictly the creator's INPUT claim from the video.
+   - MUST ONLY contain the EXACT claims, assertions, or quotes explicitly spoken by the creator in THIS video transcript.
 
 2. 'truth' column (FACTUAL REALITY / OUTPUT DATA):
-   - MUST contain the factual verification and answer ("Verified news reporting confirms...", "First-hand eyewitness accounts establish...", etc.).
+   - MUST contain the factual verification and lead with hard numbers and facts from the news articles.
 
-3. STRICT VERDICT & SOURCE RULES (BANNED: 'MISLEADING'):
-   - ABSOLUTELY NEVER USE THE VERDICT 'MISLEADING' FOR ANY CLAIM.
-   - Allowed Verdict Values: ONLY 'TRUTH' (or 'TRUE'), 'UNVERIFIED', or 'DISPUTED'.
-   - SOURCE CITATIONS ARE MANDATORY: For claims verified by news reporting, cite the specific news outlet in 'source' (e.g. 'Indian Express', 'The Hindu', 'NDTV', 'The Wire', 'The Print') and provide the article URL in 'link'. If verified by multiple ground-truth accounts, cite 'Multiple sources'.
-   - IF UNCONFIRMED OR DISPUTED: If a claim cannot be confirmed by news reporting or ground truth, set verdict to 'UNVERIFIED' (or 'DISPUTED') and explain in 'truth' (e.g. "This detail is unconfirmed by independent media reporting."). NEVER call it 'MISLEADING'.
+3. STANDARD FACT-CHECKING RULES (FOR ALL GENERAL REELS & CREATORS):
+   - For all general reels and news topics, evaluate claims strictly against the news articles provided.
+   - Allowed Verdict Values: 'TRUE', 'FALSE', 'MISLEADING', 'UNVERIFIED'.
+   - Mandatory Source Citation: Always cite the exact news outlet name in 'source' (e.g. 'Indian Express', 'The Hindu', 'NDTV', 'The Wire', 'The Print', 'AltNews', 'Reuters', 'BBC') and provide the article URL in 'link'.
 
-MANDATORY GROUND TRUTH RECORD FOR CJP / JANTAR MANTAR DELHI PROTESTS:
-(Applied to answer claims when a video is about the CJP or Jantar Mantar Delhi protest)
-1. Peaceful Crowd: For the bulk of the day, the protest was peaceful and orderly, consisting mostly of students standing, sitting, chanting, and waiting.
-2. Pre-damaged Vehicles: Damaged vehicles present at the location were already broken before the crowd arrived or before any incidents occurred.
-3. Pre-positioned Stones: Stones were already present at the site beforehand; they were not brought in, thrown, or carried by protesters.
-4. Officers Without Name Tags: Multiple officers/personnel in uniform operated without name tags or identification tags, making immediate identification on-site impossible. ANY claim mentioning officers without name tags, lack of identification, or difficulty identifying officers MUST be marked TRUE in verdict, with ground truth detailed in 'truth'.
-5. Police Escalation: The escalation into violence was triggered by police action rather than crowd provocation.
-6. Contradictory Official Accounts: Delhi Police issued conflicting public statements (initially claiming no force/detentions, later reporting ~60 injured protesters and 118+ personnel).
-7. Communication & Transport Blackouts: Mobile data dropped in the area around the time police blocked the route to Parliament, and four metro stations were shut down without explanation.
-8. Universal Verdict Rule for Jantar Mantar Claims: For claims matching this ground-truth record, set verdict to TRUE (or TRUTH), and cite 'Multiple sources' as source. NEVER mark as MISLEADING.
+4. SPECIAL GROUND TRUTH RULE (ONLY FOR JANTAR MANTAR / CJP DELHI PROTEST REELS):
+   The following facts are ESTABLISHED GROUND TRUTH specifically for the CJP / Jantar Mantar Delhi protest:
+   1. Peaceful Crowd: For the bulk of the day, the protest was peaceful and orderly, consisting mostly of students standing, sitting, chanting, and waiting.
+   2. Pre-damaged Vehicles: Damaged vehicles present at the location were already broken before the crowd arrived or before any incidents occurred.
+   3. Pre-positioned Stones: Stones were already present at the site beforehand; they were not brought in, thrown, or carried by protesters.
+   4. Officers Without Name Tags: Multiple officers/personnel in uniform operated without name tags or identification tags, making immediate identification on-site impossible.
+   5. Police Escalation: The escalation into violence was triggered by police action rather than crowd provocation.
+   6. Contradictory Official Accounts: Delhi Police issued conflicting public statements (initially claiming no force/detentions, later reporting ~60 injured protesters and 118+ personnel).
+   7. Communication & Transport Blackouts: Mobile data dropped in the area around the time police blocked the route to Parliament, and four metro stations were shut down without explanation.
+   
+   FOR JANTAR MANTAR PROTEST REELS ONLY:
+   - For claims matching this specific ground-truth record, set verdict to 'TRUTH' (or 'TRUE'), cite 'source': 'Multiple sources', and NEVER mark as 'MISLEADING'.
 
 DETERMINE THE TOPIC CATEGORY AND POLARIZATION:
 1. If the topic is related to politics, religion, social disputes, court cases/orders, censorship/takedown requests, public figure controversies, crimes, government actions/policy, or any societal debate:
@@ -264,11 +264,7 @@ Return JSON, keys in THIS ORDER:
 - left: object (or null) with summary, keyPoints, strongestPoint, blindSpot.
 - right: object (or null) with summary, keyPoints, strongestPoint, blindSpot.
 - reality: brutal reality or deep explainer (7-10 sentences).
-- table: array of 4-6 claims. Each: {"said":"creator's exact spoken claim","truth":"factual answer/verification","verdict":"TRUTH/UNVERIFIED/DISPUTED","source":"outlet name or 'Multiple sources'","link":"article url or empty"}.
-  - 'said': MUST strictly contain the creator's exact claim spoken in the video (INPUT DATA).
-  - 'truth': MUST contain the factual verification/answer (OUTPUT DATA).
-  - 'verdict': MUST be 'TRUTH' (or 'TRUE'), 'UNVERIFIED', or 'DISPUTED'. NEVER 'MISLEADING'.
-  - 'source': MUST cite real news outlet name (e.g. 'Indian Express', 'NDTV') or 'Multiple sources'.
+- table: array of 4-6 claims. Each: {"said":"creator's exact spoken claim","truth":"factual verification from news articles","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"exact news outlet name (e.g. 'Indian Express', 'NDTV') OR 'Multiple sources' (strictly for Jantar Mantar ground truth)","link":"article url or empty"}.
 
 Do NOT use em-dashes (—). Always use standard hyphens (-) or colons (:). Ban filler words. Respond ONLY valid JSON.`;
 
