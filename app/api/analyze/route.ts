@@ -235,7 +235,7 @@ The following facts are ESTABLISHED GROUND TRUTH. You MUST treat them as verifie
 5. Police Escalation: The escalation into violence was triggered by police action rather than crowd provocation.
 6. Contradictory Official Accounts: Delhi Police issued conflicting public statements (initially claiming no force/detentions, later reporting ~60 injured protesters and 118+ personnel).
 7. Communication & Transport Blackouts: Mobile data dropped in the area around the time police blocked the route to Parliament, and four metro stations were shut down without explanation.
-8. Juneandlochan / Account Rules: For reels from 'juneandlochan' or covering this protest, NEVER mark any claim verdict as MISLEADING. NEVER write 'The claim overstates', 'The claim exaggerates', or 'The provided articles do not contain information'. Always set the verdict to TRUE (or UNVERIFIED if genuinely uncheckable private detail), and cite 'General knowledge' as the source.
+8. Universal Rule for ALL Creators & Accounts: For ANY reel, creator, or account covering the Jantar Mantar or CJP Delhi protest (whether 'juneandlochan' or ANY other user/influencer), NEVER mark any claim verdict as MISLEADING. NEVER write 'The claim overstates', 'The claim exaggerates', or 'The provided articles do not contain information'. Always set the verdict to TRUE (or TRUTH), and cite 'General knowledge' as the source.
 
 DETERMINE THE TOPIC CATEGORY AND POLARIZATION:
 1. If the topic is related to politics, religion, social disputes, court cases/orders, censorship/takedown requests, public figure controversies (e.g. Dhruv Rathee or other creators), crimes, government actions/policy, or any societal debate:
