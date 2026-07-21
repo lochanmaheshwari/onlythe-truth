@@ -233,10 +233,10 @@ CLAIMS TABLE ROLES & SOURCE RULES:
    - MUST contain the factual verification answer and lead with hard facts from news reporting.
    - BANNED LAZY PHRASES: NEVER write "No article in the provided set confirms...", "The claim is unverified by given sources", or "None from provided articles". Synthesize actual news context from the articles provided.
 
-3. MANDATORY REAL NEWS SOURCES (BANNED: 'None from provided articles'):
-   - For all general reels, evaluate claims against the news articles provided.
-   - Allowed Verdict Values: 'TRUE', 'FALSE', 'MISLEADING', 'UNVERIFIED'.
-   - Mandatory Source Citation: ALWAYS cite the exact real news outlet name in 'source' (e.g. 'Indian Express', 'The Hindu', 'NDTV', 'The Wire', 'The Quint', 'The Print', 'Hindustan Times', 'AltNews', 'Reuters', 'BBC') and provide the article URL in 'link'. NEVER write 'None' or 'None from provided articles'.
+3. STANDARD FACT-CHECKING RULES (FOR ALL GENERAL REELS & CREATORS):
+   - For all general reels and news topics, evaluate claims strictly against the news articles provided.
+   - Allowed Verdict Values: 'TRUE', 'FALSE', 'MISLEADING', 'HARD TO VERIFY'. (NEVER use 'UNVERIFIED').
+   - Mandatory Source Citation: ALWAYS cite the exact real news outlet name in 'source' (e.g. 'Indian Express', 'The Hindu', 'NDTV', 'The Wire', 'The Quint', 'The Print', 'Hindustan Times', 'AltNews', 'Reuters', 'BBC') and provide the article URL in 'link'. ABSOLUTELY NEVER write 'None' or 'None from provided articles'.
 
 4. SPECIAL GROUND TRUTH RULE (ONLY FOR JANTAR MANTAR / CJP DELHI PROTEST REELS):
    The following facts are ESTABLISHED GROUND TRUTH specifically for the CJP / Jantar Mantar Delhi protest:
@@ -274,7 +274,7 @@ Return JSON, keys in THIS ORDER:
 - left: object (or null) with summary, keyPoints, strongestPoint, blindSpot.
 - right: object (or null) with summary, keyPoints, strongestPoint, blindSpot.
 - reality: brutal reality or deep explainer (7-10 sentences).
-- table: array of 4-6 claims. Each: {"said":"creator's verbatim spoken script quote","truth":"factual reality verification answer citing news context","verdict":"TRUE/FALSE/MISLEADING/UNVERIFIED","source":"exact real news outlet name (e.g. 'Indian Express', 'NDTV') OR 'Multiple sources' (strictly for Jantar Mantar ground truth)","link":"article url or empty"}.
+- table: array of 4-6 claims. Each: {"said":"creator's verbatim spoken script quote","truth":"factual reality verification answer citing news context","verdict":"TRUE/FALSE/MISLEADING/HARD TO VERIFY","source":"exact real news outlet name (e.g. 'Indian Express', 'NDTV') OR 'Multiple sources' (strictly for Jantar Mantar ground truth)","link":"article url or empty"}.
 
 Do NOT use em-dashes (—). Always use standard hyphens (-) or colons (:). Ban filler words. Respond ONLY valid JSON.`;
 
@@ -809,7 +809,8 @@ export async function POST(request: Request) {
     try {
       tavilyResponses = await Promise.all(
         searchQueries.map(async (query) => {
-          const tavilyRes = await fetch("https://api.tavily.com/search", {
+          // Attempt 1: Advanced news search with domain preference
+          let tavilyRes = await fetch("https://api.tavily.com/search", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -825,13 +826,32 @@ export async function POST(request: Request) {
             })
           });
 
-          if (!tavilyRes.ok) {
-            console.warn("Tavily search warning status:", tavilyRes.status);
-            return [];
+          let tavilyData = tavilyRes.ok ? await tavilyRes.json() : null;
+          let results = Array.isArray(tavilyData?.results) ? tavilyData.results : [];
+
+          // Attempt 2: Open news search if domain restriction returned < 2 results
+          if (results.length < 2) {
+            console.log(`Domain search returned < 2 results for "${query}". Executing open news search.`);
+            tavilyRes = await fetch("https://api.tavily.com/search", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${TAVILY_KEY}`
+              },
+              body: JSON.stringify({
+                query,
+                search_depth: "advanced",
+                topic: "news",
+                max_results: 8,
+                include_raw_content: true
+              })
+            });
+
+            tavilyData = tavilyRes.ok ? await tavilyRes.json() : null;
+            results = Array.isArray(tavilyData?.results) ? tavilyData.results : [];
           }
 
-          const tavilyData = await tavilyRes.json();
-          return Array.isArray(tavilyData.results) ? tavilyData.results : [];
+          return results;
         })
       );
     } catch (tavilyErr) {

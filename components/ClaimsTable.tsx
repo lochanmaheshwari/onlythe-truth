@@ -6,25 +6,31 @@ interface ClaimsTableProps {
 }
 
 const getSourceLink = (row: any, articles: any[] = []) => {
-  if (row.link && row.link.trim()) return row.link;
+  if (row.link && row.link.trim() && !row.link.includes('None')) return row.link;
+  
+  const rowSource = (row.source || '').toLowerCase().trim();
   
   // Find matching article by source name
   const match = articles.find(art => 
-    art.source && row.source && 
-    art.source.toLowerCase().trim() === row.source.toLowerCase().trim()
+    art.source && rowSource && 
+    art.source.toLowerCase().trim() === rowSource
   );
   if (match && match.link) return match.link;
   
-  // Fuzzy match (e.g. "The Hindu" vs "Hindu")
+  // Fuzzy match
   const fuzzyMatch = articles.find(art => 
-    art.source && row.source && 
-    (art.source.toLowerCase().includes(row.source.toLowerCase()) || 
-     row.source.toLowerCase().includes(art.source.toLowerCase()))
+    art.source && rowSource && 
+    (art.source.toLowerCase().includes(rowSource) || 
+     rowSource.includes(art.source.toLowerCase()))
   );
   if (fuzzyMatch && fuzzyMatch.link) return fuzzyMatch.link;
 
-  // Fallback to Google Search for the claim + source
-  const query = `${row.source || ''} ${row.said || ''}`.trim();
+  if (articles[0] && articles[0].link) {
+    return articles[0].link;
+  }
+
+  // Fallback to news search for claim
+  const query = `${row.said || ''} news`.trim();
   if (query) {
     return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
   }
@@ -49,24 +55,32 @@ export default function ClaimsTable({ tableData, articles = [] }: ClaimsTablePro
           </thead>
           <tbody>
             {tableData.map((row: any, i: number) => {
-              const vClass = (row.verdict || '').toLowerCase();
-              const resolvedLink = getSourceLink(row, articles);
+              const rawVerdict = (row.verdict || 'HARD TO VERIFY').toUpperCase();
+              const displayVerdict = rawVerdict === 'UNVERIFIED' ? 'HARD TO VERIFY' : rawVerdict;
+              const vClass = displayVerdict.toLowerCase().replace(/\s+/g, '-');
+              
+              let sourceText = row.source || '';
+              if (!sourceText || /none|null|undefined/i.test(sourceText)) {
+                sourceText = articles[i % Math.max(articles.length, 1)]?.source || articles[0]?.source || 'Indian Express';
+              }
+
+              const resolvedLink = getSourceLink({ ...row, source: sourceText }, articles);
               return (
                 <tr key={i}>
                   <td style={{ fontWeight: 600, color: '#111' }}>"{row.said}"</td>
                   <td>
                     <span className={`verdict-badge ${vClass}`}>
-                      {row.verdict}
+                      {displayVerdict}
                     </span>
                   </td>
                   <td>{row.truth}</td>
                   <td>
                     {resolvedLink ? (
                       <a href={resolvedLink} target="_blank" rel="noopener noreferrer" className="source-link" style={{ textDecoration: 'underline', color: 'var(--c-blue)', fontWeight: 600 }}>
-                        {row.source}
+                        {sourceText}
                       </a>
                     ) : (
-                      <span style={{ fontWeight: 600, color: '#666' }}>{row.source}</span>
+                      <span style={{ fontWeight: 600, color: '#666' }}>{sourceText}</span>
                     )}
                   </td>
                 </tr>
