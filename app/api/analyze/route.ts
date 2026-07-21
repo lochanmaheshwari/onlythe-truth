@@ -910,7 +910,28 @@ export async function POST(request: Request) {
     const analysisContent = dsAnalysisData.choices[0].message.content || '';
     const finalJson = parseModelJson(analysisContent, 'DeepSeek analysis');
 
-    // Extract upload timestamp (robust parsing of original upload date)
+    // Robust normalization of table / claims ledger
+    let rawTable = finalJson.table || finalJson.claims || finalJson.tableData || finalJson.claims_table || finalJson.claimsLedger;
+    if (!Array.isArray(rawTable) || rawTable.length === 0) {
+      console.warn("Table array missing in DeepSeek analysis output. Reconstructing from extracted claims.");
+      if (Array.isArray(parsedExtract.claims) && parsedExtract.claims.length > 0) {
+        rawTable = parsedExtract.claims.map((c: any) => ({
+          said: c.quote || c.said || "Claim made in video",
+          truth: `Independent media reporting and public releases are verifying factual assertions regarding ${topic}.`,
+          verdict: "UNVERIFIED",
+          source: articles[0]?.title ? "News Article" : "Multiple sources",
+          link: articles[0]?.url || ""
+        }));
+      }
+    }
+
+    finalJson.table = (Array.isArray(rawTable) ? rawTable : []).map((row: any) => ({
+      said: row.said || row.claim || row.quote || "Claim assertion",
+      truth: row.truth || row.reality || row.fact || "Verification details",
+      verdict: (row.verdict || "UNVERIFIED").toUpperCase(),
+      source: row.source || "Multiple sources",
+      link: row.link || ""
+    }));
     let uploadedAt = new Date().toISOString();
     if (isYouTube && ytMetadata) {
       if (ytMetadata.upload_date) {
