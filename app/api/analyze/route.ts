@@ -201,10 +201,16 @@ function parseModelJson(raw: string, label: string): any {
   }
 }
 
+function containsUrduScript(text: string): boolean {
+  if (!text) return false;
+  // Arabic & Urdu script unicode ranges
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+}
+
 const EXTRACT_PROMPT = `Read this video transcript and caption. Identify the PRIMARY event and extract the EXACT claims spoken or asserted in the video.
 
-CRITICAL CLAIM EXTRACTION RULES:
-1. 'quote': MUST strictly contain the exact verbatim words/claims spoken in the video transcript or caption (whether in Hindi, Hinglish, or English).
+CRITICAL CLAIM EXTRACTION & SCRIPT RULES:
+1. 'quote': MUST strictly contain the exact verbatim words/claims spoken in the video transcript or caption (whether in Hindi, Hinglish, or English). NEVER output Urdu script or non-English/Hindi text. If the audio transcript is noisy or contains hallucinated Urdu, rely STRICTLY on the video's caption.
 2. 'search': For Hindi/Hinglish quotes, TRANSLATE the claim's core factual topic into a crisp 3-6 word ENGLISH search query for news search (e.g. quote: "NCERT ने 121 करोड़ का टेंडर निकाला" -> search: "NCERT 121 crore tender paper supply shortage").
 
 Extract:
@@ -346,6 +352,7 @@ async function getYtDlpAudioTranscript(url: string, groqKey: string): Promise<st
     const fileBlob = new Blob([fileBytes], { type: 'audio/mp3' });
     const formData = new FormData();
     formData.append('model', 'whisper-large-v3');
+    formData.append('prompt', 'Transcribe news and commentary accurately in English or Hindi.');
     formData.append('file', fileBlob, audioFile);
 
     const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
@@ -358,8 +365,8 @@ async function getYtDlpAudioTranscript(url: string, groqKey: string): Promise<st
     }
     const groqData = await groqRes.json();
     const transcript = groqData.text;
-    if (!transcript) {
-      throw new Error('Groq Whisper did not return transcript text');
+    if (!transcript || containsUrduScript(transcript)) {
+      throw new Error('Groq Whisper returned Urdu script or invalid transcript text');
     }
     return transcript;
   } catch (err: any) {
@@ -473,6 +480,7 @@ async function getYouTubeTranscript(url: string, groqKey: string): Promise<{ tra
     const fileBlob = new Blob([fileBytes], { type: 'audio/mp3' });
     const formData = new FormData();
     formData.append('model', 'whisper-large-v3');
+    formData.append('prompt', 'Transcribe news and commentary accurately in English or Hindi.');
     formData.append('file', fileBlob, 'audio.mp3');
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
@@ -489,8 +497,8 @@ async function getYouTubeTranscript(url: string, groqKey: string): Promise<{ tra
 
     const groqData = await groqRes.json();
     const transcript = groqData.text;
-    if (!transcript) {
-      throw new Error("Groq Whisper did not return transcript text");
+    if (!transcript || containsUrduScript(transcript)) {
+      throw new Error("Groq Whisper returned Urdu script or invalid transcript text");
     }
 
     return { transcript, usedWhisper: true };
@@ -701,6 +709,7 @@ export async function POST(request: Request) {
             // Groq Whisper Transcription
             const formData = new FormData();
             formData.append("model", "whisper-large-v3");
+            formData.append("prompt", "Transcribe news and commentary accurately in English or Hindi.");
             formData.append("file", mediaBlob, filename);
 
             const groqRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
@@ -714,8 +723,12 @@ export async function POST(request: Request) {
             if (groqRes.ok) {
               const groqData = await groqRes.json();
               if (groqData.text && groqData.text.trim().length > 10) {
-                transcript = groqData.text;
-                console.log("Groq Whisper successfully transcribed audio locally, length:", transcript.length);
+                if (containsUrduScript(groqData.text)) {
+                  console.warn("Groq Whisper returned Urdu script / audio hallucination. Discarding transcript and sticking strictly to caption.");
+                } else {
+                  transcript = groqData.text;
+                  console.log("Groq Whisper successfully transcribed audio locally, length:", transcript.length);
+                }
               }
             }
           }
@@ -724,9 +737,15 @@ export async function POST(request: Request) {
         }
       }
 
-      // If audio transcript was not extracted, fallback to reel's actual caption
-      if (!transcript || transcript.trim().length < 10) {
+      // If audio transcript was not extracted or was discarded due to Urdu/invalid script, fallback to reel's actual caption
+      if (!transcript || transcript.trim().length < 10 || containsUrduScript(transcript)) {
+        console.log("Audio transcript unavailable or contained invalid/Urdu script. Falling back strictly to reel caption.");
         transcript = customResult.caption || item?.caption || '';
+      }
+
+      // If transcript still has any stray Urdu script characters, strip them
+      if (containsUrduScript(transcript)) {
+        transcript = transcript.replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '').trim();
       }
 
       // If neither audio transcript nor descriptive caption is available, stop and inform user
