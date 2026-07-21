@@ -725,13 +725,14 @@ export async function POST(request: Request) {
         }
       }
 
-      // Backend fallback for transcript if direct stream download is restricted
+      // If audio transcript was not extracted, fallback to reel's actual caption
       if (!transcript || transcript.trim().length < 10) {
-        if (/DbA9_ufslZ3|DbBuctosdQX|juneandlochan|jantar|cjp|protest/i.test(url + (customResult.caption || '') + (customResult.ownerUsername || ''))) {
-          transcript = "Tomorrow, you’ll be sold a narrative: the protest turned violent. You’ll see broken cars. Damaged buses. Clips of people throwing stones. There are broken vehicles and vehicles filled with rocks that were staged or manipulated to shape the narrative. There are literally clips of policeman breaking a window to make it look violent. What is clear is that the overwhelming majority of people who came out were there to protest peacefully. But as police brutality kept increasing, situation escalated, people got frustrated and clashes broke out.";
-        } else {
-          transcript = customResult.caption || "Instagram Reel Video Scan";
-        }
+        transcript = customResult.caption || item?.caption || '';
+      }
+
+      // If neither audio transcript nor descriptive caption is available, stop and inform user
+      if (!transcript || transcript.trim().length < 10) {
+        throw new Error("No audio transcript or descriptive caption available for this reel to analyze.");
       }
     }
 
@@ -775,9 +776,8 @@ export async function POST(request: Request) {
 
     let topic = parsedExtract.topic || parsedExtract.Topic || parsedExtract.TOPIC || parsedExtract.theme || parsedExtract.title || parsedExtract.main_event || parsedExtract.query;
 
-    if (!topic || topic.length < 5) {
-      console.log("Topic missing or short from extraction. Defaulting to protest topic fallback.");
-      topic = "Delhi CJP Jantar Mantar protest narrative clash";
+    if (!topic || topic.length < 3) {
+      throw new Error("No audio transcript or descriptive caption available for this reel to analyze.");
     }
 
     const isIndianCreator = /juneandlochan|india|delhi|mumbai|bengaluru|kolkata/i.test(accountHandle + captionText);
