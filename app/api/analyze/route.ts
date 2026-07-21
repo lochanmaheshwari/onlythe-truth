@@ -141,6 +141,14 @@ function pickInstagramItemFromResponse(
 
 function isUsableCachedAnalysis(data: any): boolean {
   if (!data || typeof data !== 'object') return false;
+  const headline = data.headline || data.topic || '';
+  if (isWhisperHallucination(headline) || containsUrduScript(headline)) return false;
+
+  const table = Array.isArray(data.table) ? data.table : [];
+  if (table.some((row: any) => isWhisperHallucination(row.said || '') || containsUrduScript(row.said || ''))) {
+    return false;
+  }
+
   const hasHeadline = typeof data.headline === 'string' && data.headline.trim().length > 4;
   const hasTable = Array.isArray(data.table) && data.table.length > 0;
   const hasReport = Boolean(data.fight || data.reality || data.left || data.right);
@@ -207,16 +215,68 @@ function containsUrduScript(text: string): boolean {
   return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
 }
 
-const EXTRACT_PROMPT = `Read this video transcript and caption. Identify the PRIMARY event and extract the EXACT claims spoken or asserted in the video.
+function isWhisperHallucination(text: string): boolean {
+  if (!text) return true;
+  const clean = text.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()!?]/g, "");
+
+  const fillerPhrases = [
+    "thank you for watching",
+    "thanks for watching",
+    "thank you for listening",
+    "thanks for listening",
+    "thank you",
+    "thanks",
+    "subscribe to my channel",
+    "like and subscribe",
+    "subtitles by",
+    "subtitles created by",
+    "transcribed by",
+    "translated by",
+    "amaraorg",
+    "amara",
+    "bye for now",
+    "see you next time",
+    "please subscribe",
+    "watching",
+    "subtitles",
+    "music",
+    "foreign",
+    "video created by",
+    "copyright",
+    "all rights reserved"
+  ];
+
+  if (fillerPhrases.some(phrase => clean === phrase || clean.startsWith(phrase) || clean.endsWith(phrase))) {
+    return true;
+  }
+
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length <= 4 && fillerPhrases.some(p => clean.includes(p))) {
+    return true;
+  }
+
+  return false;
+}
+
+function isValidTranscript(text: string): boolean {
+  if (!text || text.trim().length < 10) return false;
+  if (containsUrduScript(text)) return false;
+  if (isWhisperHallucination(text)) return false;
+  return true;
+}
+
+const EXTRACT_PROMPT = `Read this video metadata, caption, and transcript. Identify the PRIMARY event and extract the EXACT claims spoken or asserted in the video.
 
 CRITICAL CLAIM EXTRACTION & SCRIPT RULES:
-1. 'quote': MUST strictly contain the exact verbatim words/claims spoken in the video transcript or caption (whether in Hindi, Hinglish, or English). NEVER output Urdu script or non-English/Hindi text. If the audio transcript is noisy or contains hallucinated Urdu, rely STRICTLY on the video's caption.
-2. 'search': For Hindi/Hinglish quotes, TRANSLATE the claim's core factual topic into a crisp 3-6 word ENGLISH search query for news search (e.g. quote: "NCERT ने 121 करोड़ का टेंडर निकाला" -> search: "NCERT 121 crore tender paper supply shortage").
+1. CAPTION & METADATA USAGE: You MUST use the video's CAPTION as primary source text whenever the spoken transcript is silent, music-only, incomplete, or contains generic filler phrases like "Thank you for watching".
+2. HALLUCINATION & FILLER FILTER: COMPLETELY IGNORE filler phrases such as "Thank you for watching", "Subtitles by...", "Subscribe", or foreign/Urdu script. Extract real claims strictly from the CAPTION and real spoken news content.
+3. 'quote': MUST strictly contain the exact verbatim words/claims from the video's caption or spoken transcript (whether in Hindi, Hinglish, or English).
+4. 'search': For Hindi/Hinglish quotes, TRANSLATE the claim's core factual topic into a crisp 3-6 word ENGLISH search query for news search (e.g. quote: "NCERT ने 121 करोड़ का टेंडर निकाला" -> search: "NCERT 121 crore tender paper supply shortage").
 
 Extract:
-1. topic: a specific English search phrase for the MAIN event being discussed in THIS video.
+1. topic: a specific English search phrase for the MAIN event being discussed in THIS video/caption.
 2. entities: real corrected names of the people/places/orgs in THIS video.
-3. claims: the 4-5 most CONSEQUENTIAL claims explicitly made in THIS video transcript. Each: {"quote": "exact words spoken in video", "search": "crisp English news search query"}.
+3. claims: the 4-5 most CONSEQUENTIAL claims explicitly made in THIS video (from caption or transcript). Each: {"quote": "exact words spoken/captioned", "search": "crisp English news search query"}.
 4. region: "india" if the event or creator is Indian. Otherwise "world".
 5. category: "indian_politics", "us_politics", "crimes_against_women", "world_news", or "others".
 
@@ -365,8 +425,8 @@ async function getYtDlpAudioTranscript(url: string, groqKey: string): Promise<st
     }
     const groqData = await groqRes.json();
     const transcript = groqData.text;
-    if (!transcript || containsUrduScript(transcript)) {
-      throw new Error('Groq Whisper returned Urdu script or invalid transcript text');
+    if (!isValidTranscript(transcript)) {
+      throw new Error('Groq Whisper returned hallucinated filler phrase or invalid transcript text');
     }
     return transcript;
   } catch (err: any) {
@@ -497,8 +557,8 @@ async function getYouTubeTranscript(url: string, groqKey: string): Promise<{ tra
 
     const groqData = await groqRes.json();
     const transcript = groqData.text;
-    if (!transcript || containsUrduScript(transcript)) {
-      throw new Error("Groq Whisper returned Urdu script or invalid transcript text");
+    if (!isValidTranscript(transcript)) {
+      throw new Error("Groq Whisper returned hallucinated filler phrase or invalid transcript text");
     }
 
     return { transcript, usedWhisper: true };
@@ -722,13 +782,11 @@ export async function POST(request: Request) {
 
             if (groqRes.ok) {
               const groqData = await groqRes.json();
-              if (groqData.text && groqData.text.trim().length > 10) {
-                if (containsUrduScript(groqData.text)) {
-                  console.warn("Groq Whisper returned Urdu script / audio hallucination. Discarding transcript and sticking strictly to caption.");
-                } else {
-                  transcript = groqData.text;
-                  console.log("Groq Whisper successfully transcribed audio locally, length:", transcript.length);
-                }
+              if (groqData.text && isValidTranscript(groqData.text)) {
+                transcript = groqData.text;
+                console.log("Groq Whisper successfully transcribed audio locally, length:", transcript.length);
+              } else {
+                console.warn("Groq Whisper returned hallucinated filler phrase or Urdu script. Discarding audio transcript and sticking strictly to caption.");
               }
             }
           }
@@ -737,10 +795,12 @@ export async function POST(request: Request) {
         }
       }
 
-      // If audio transcript was not extracted or was discarded due to Urdu/invalid script, fallback to reel's actual caption
-      if (!transcript || transcript.trim().length < 10 || containsUrduScript(transcript)) {
-        console.log("Audio transcript unavailable or contained invalid/Urdu script. Falling back strictly to reel caption.");
-        transcript = customResult.caption || item?.caption || '';
+      const captionText = customResult.caption || item?.caption || item?.text || '';
+
+      // If audio transcript was not extracted or was discarded due to hallucination, fallback to reel's actual caption
+      if (!isValidTranscript(transcript)) {
+        console.log("Audio transcript invalid or hallucinated filler phrase. Falling back strictly to reel caption.");
+        transcript = captionText;
       }
 
       // If transcript still has any stray Urdu script characters, strip them
@@ -749,15 +809,15 @@ export async function POST(request: Request) {
       }
 
       // If neither audio transcript nor descriptive caption is available, stop and inform user
-      if (!transcript || transcript.trim().length < 10) {
+      if (!transcript || transcript.trim().length < 5) {
         throw new Error("No audio transcript or descriptive caption available for this reel to analyze.");
       }
     }
 
     // STEP 3 — DeepSeek extract
     const accountHandle = item?.ownerUsername || item?.ownerFullName || (url.includes('juneandlochan') ? 'juneandlochan' : '');
-    const captionText = item?.caption || item?.text || '';
-    const videoMetadataPayload = `ACCOUNT HANDLE/AUTHOR: ${accountHandle}\nCAPTION: ${captionText}\nURL: ${url}\nTRANSCRIPT: ${transcript}`;
+    const captionText = item?.caption || item?.text || customResult?.caption || '';
+    const videoMetadataPayload = `ACCOUNT HANDLE/AUTHOR: ${accountHandle}\nCAPTION: ${captionText}\nURL: ${url}\nPRIMARY TEXT / TRANSCRIPT: ${transcript}`;
 
     const dsExtractRes = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",

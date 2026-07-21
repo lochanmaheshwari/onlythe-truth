@@ -167,6 +167,14 @@ export async function extractInstagramMedia(url: string): Promise<CustomInstagra
   // Tier 1: Try Native GraphQL doc_id endpoint (Returns direct CDN audio/video URL in < 200ms)
   const nativeDocResult = await fetchNativeGraphQLDocId(shortcode);
   if (nativeDocResult) {
+    if (!nativeDocResult.caption) {
+      try {
+        const oembedBackup = await fetchNativeOembed(shortcode);
+        if (oembedBackup?.caption) {
+          nativeDocResult.caption = oembedBackup.caption;
+        }
+      } catch (e) { }
+    }
     console.log(`[NATIVE SCRAPER] Extracted audio/video URL natively for shortcode ${shortcode}:`, nativeDocResult.mediaUrl.slice(0, 80) + '...');
     return nativeDocResult;
   }
