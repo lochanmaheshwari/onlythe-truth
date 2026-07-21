@@ -545,16 +545,13 @@ export default function HomePage() {
         if (error) throw error;
         
         if (data?.user) {
-          // Attempt to insert/upsert profile row safely
+          // Sync profile to public.profiles via server API with service role key (bypasses RLS)
           try {
-            await supabase
-              .from('profiles')
-              .upsert({
-                id: data.user.id,
-                email: data.user.email,
-                is_premium: false,
-                updated_at: new Date().toISOString()
-              });
+            await fetch('/api/auth/sync-profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: data.user.id, email: data.user.email })
+            });
           } catch (pErr) {
             console.warn("Profile creation notice:", pErr);
           }
@@ -582,14 +579,12 @@ export default function HomePage() {
         if (error) throw error;
         if (data?.user) {
           try {
-            // Manually ensure profile row exists in public.profiles
-            await supabase
-              .from('profiles')
-              .upsert({
-                id: data.user.id,
-                email: data.user.email,
-                updated_at: new Date().toISOString()
-              });
+            // Sync profile to public.profiles via server API with service role key (bypasses RLS)
+            await fetch('/api/auth/sync-profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: data.user.id, email: data.user.email })
+            });
           } catch (pErr) {
             console.warn("Profile sync notice:", pErr);
           }
