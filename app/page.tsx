@@ -545,20 +545,35 @@ export default function HomePage() {
         if (error) throw error;
         
         if (data?.user) {
-          // Manually upsert profile to public.profiles table in case trigger isn't ready
-          await supabase
-            .from('profiles')
-            .upsert({
-              id: data.user.id,
-              email: data.user.email,
-              is_premium: false,
-              updated_at: new Date().toISOString()
-            });
+          // Attempt to insert/upsert profile row safely
+          try {
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: data.user.id,
+                email: data.user.email,
+                is_premium: false,
+                updated_at: new Date().toISOString()
+              });
+          } catch (pErr) {
+            console.warn("Profile creation notice:", pErr);
+          }
+
+          if (data?.session) {
+            // Instant sign-in if email confirmation is disabled or auto-confirmed
+            const email = data.user.email || inputEmail.trim();
+            localStorage.setItem('userEmail', email);
+            setUserEmail(email);
+            setShowLoginModal(false);
+            setInputEmail('');
+            setPassword('');
+            window.dispatchEvent(new Event('storage'));
+          } else {
+            setAuthSuccess("Sign up successful! A confirmation link has been sent to your email. Please check your inbox and verify your email to log in.");
+            setInputEmail('');
+            setPassword('');
+          }
         }
-        
-        setAuthSuccess("Sign up successful! A confirmation link has been sent to your email. Please check your inbox and verify your email to log in.");
-        setInputEmail('');
-        setPassword('');
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: inputEmail.trim(),
@@ -566,29 +581,37 @@ export default function HomePage() {
         });
         if (error) throw error;
         if (data?.user) {
-          // Manually ensure profile row exists in public.profiles
-          await supabase
-            .from('profiles')
-            .upsert({
-              id: data.user.id,
-              email: data.user.email,
-              updated_at: new Date().toISOString()
-            });
+          try {
+            // Manually ensure profile row exists in public.profiles
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: data.user.id,
+                email: data.user.email,
+                updated_at: new Date().toISOString()
+              });
+          } catch (pErr) {
+            console.warn("Profile sync notice:", pErr);
+          }
 
           const email = data.user.email || inputEmail.trim();
           localStorage.setItem('userEmail', email);
           setUserEmail(email);
 
           // Retrieve active subscription status from profiles
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_premium')
-            .eq('id', data.user.id)
-            .single();
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('is_premium')
+              .eq('id', data.user.id)
+              .single();
 
-          const isPrem = !!profile?.is_premium;
-          localStorage.setItem('isPremium', String(isPrem));
-          setIsPremium(isPrem);
+            const isPrem = !!profile?.is_premium;
+            localStorage.setItem('isPremium', String(isPrem));
+            setIsPremium(isPrem);
+          } catch (pErr) {
+            console.warn("Profile status check notice:", pErr);
+          }
 
           setShowLoginModal(false);
           setInputEmail('');
@@ -3946,7 +3969,7 @@ export default function HomePage() {
                   </button>
                 </div>
               ) : (
-                /* Logged Out View - Inline Login Form */
+                /* Logged Out View - Inline Login/Signup Form */
                 <div style={{
                   background: '#fff',
                   border: '1px solid #e5e0d8',
@@ -3958,67 +3981,110 @@ export default function HomePage() {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                 }}>
                   <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--serif)' }}>Sign in to Only The Truth</h3>
-                    <p style={{ fontSize: '0.82rem', color: '#78716c', marginTop: '0.25rem' }}>Save scans, check histories, and track viral claims.</p>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--serif)' }}>
+                      {isSignUp ? 'Create a Free Account' : 'Sign in to Only The Truth'}
+                    </h3>
+                    <p style={{ fontSize: '0.82rem', color: '#78716c', marginTop: '0.25rem' }}>
+                      {isSignUp 
+                        ? 'Sign up to build your critical thinking index, track polarized narratives, and learn media literacy skills.' 
+                        : 'Save scans, check histories, and track viral claims.'}
+                    </p>
                   </div>
-                  <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#444' }}>Email Address</label>
-                      <input 
-                        type="email" 
-                        value={inputEmail}
-                        onChange={(e) => setInputEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        style={{
-                          border: '1px solid #d6d3d1',
-                          borderRadius: '8px',
-                          padding: '0.75rem',
-                          fontSize: '0.88rem',
-                          background: '#fcfaf7'
-                        }}
-                        required
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#444' }}>Password</label>
-                      <input 
-                        type="password" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        style={{
-                          border: '1px solid #d6d3d1',
-                          borderRadius: '8px',
-                          padding: '0.75rem',
-                          fontSize: '0.88rem',
-                          background: '#fcfaf7'
-                        }}
-                        required
-                      />
-                    </div>
-                    {authError && (
-                      <div style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600 }}>
-                        ✕ {authError}
-                      </div>
-                    )}
-                    <button 
-                      type="submit"
-                      disabled={authLoading}
-                      style={{
-                        background: '#000',
+                  {authSuccess ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
+                      <div style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '50%',
+                        backgroundColor: '#10b981',
                         color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '0.8rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        fontSize: '0.88rem',
-                        marginTop: '0.5rem'
-                      }}
-                    >
-                      {authLoading ? 'Signing In...' : 'Sign In / Sign Up'}
-                    </button>
-                  </form>
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.75rem',
+                        fontWeight: 900
+                      }}>
+                        ✓
+                      </div>
+                      <h4 style={{ fontWeight: 800, color: '#10b981', fontSize: '1.1rem' }}>Check Your Email</h4>
+                      <p style={{ fontSize: '0.85rem', lineHeight: 1.45, color: '#444' }}>
+                        {authSuccess}
+                      </p>
+                      <button 
+                        onClick={() => { setAuthSuccess(''); setIsSignUp(false); }}
+                        style={{ border: 'none', borderRadius: '8px', cursor: 'pointer', padding: '0.8rem 2rem', background: '#000', color: '#fff', marginTop: '0.5rem' }}
+                      >
+                        Proceed to Login
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#444' }}>Email Address</label>
+                        <input 
+                          type="email" 
+                          value={inputEmail}
+                          onChange={(e) => setInputEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          style={{
+                            border: '1px solid #d6d3d1',
+                            borderRadius: '8px',
+                            padding: '0.75rem',
+                            fontSize: '0.88rem',
+                            background: '#fcfaf7'
+                          }}
+                          required
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#444' }}>Password</label>
+                        <input 
+                          type="password" 
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          style={{
+                            border: '1px solid #d6d3d1',
+                            borderRadius: '8px',
+                            padding: '0.75rem',
+                            fontSize: '0.88rem',
+                            background: '#fcfaf7'
+                          }}
+                          required
+                          minLength={6}
+                        />
+                      </div>
+                      {authError && (
+                        <div style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600 }}>
+                          ✕ {authError}
+                        </div>
+                      )}
+                      <button 
+                        type="submit"
+                        disabled={authLoading}
+                        style={{
+                          background: '#000',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.8rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          fontSize: '0.88rem',
+                          marginTop: '0.5rem'
+                        }}
+                      >
+                        {authLoading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Log In'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); setAuthSuccess(''); }}
+                        style={{ background: 'none', border: 'none', color: 'var(--c-blue)', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer', marginTop: '0.35rem', alignSelf: 'center' }}
+                      >
+                        {isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
+                      </button>
+                    </form>
+                  )}
                 </div>
               )}
             </section>
